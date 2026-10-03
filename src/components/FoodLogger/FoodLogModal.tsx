@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { MealType, FoodItem, StaplePreset } from '../../types';
 import { PhotoUploader } from './PhotoUploader';
 import { StapleCalculator } from './StapleCalculator';
+import { DishSearch } from './DishSearch';
 import { QuickManualForm } from './QuickManualForm';
-import { X, Camera, Utensils, Zap, SunMedium, Sun, Moon, Coffee } from 'lucide-react';
+import { X, Camera, Utensils, Zap, SunMedium, Sun, Moon, Coffee, Soup } from 'lucide-react';
 
 interface FoodLogModalProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
   onOpenSettings,
 }) => {
   const [mealType, setMealType] = useState<MealType>(defaultMealType);
-  const [activeTab, setActiveTab] = useState<'photo' | 'staple' | 'manual'>('staple');
+  const [activeTab, setActiveTab] = useState<'staple' | 'dish' | 'photo' | 'manual'>('staple');
 
   if (!isOpen) return null;
 
@@ -51,7 +52,7 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* モーダルヘッダー */}
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -87,12 +88,12 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
           </button>
         </div>
 
-        {/* 3つの入力方法タブ */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 text-xs font-bold">
+        {/* 4つの入力方法タブ */}
+        <div className="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 text-xs font-bold overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('staple')}
-            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-all ${
+            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 whitespace-nowrap transition-all ${
               activeTab === 'staple'
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -100,13 +101,26 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
           >
             <Utensils size={15} />
             <span>主食クイック計算</span>
-            <span className="text-[10px] bg-sky-100 text-sky-800 px-1 rounded-sm">おすすめ</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('dish')}
+            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 whitespace-nowrap transition-all ${
+              activeTab === 'dish'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Soup size={15} />
+            <span>料理検索（材料内訳）</span>
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded-sm">NEW</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('photo')}
-            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-all ${
+            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 whitespace-nowrap transition-all ${
               activeTab === 'photo'
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -119,7 +133,7 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('manual')}
-            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 transition-all ${
+            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 whitespace-nowrap transition-all ${
               activeTab === 'manual'
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -139,6 +153,17 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
               onOpenStaplesConfig={() => {
                 onClose();
                 onOpenStaplesConfig();
+              }}
+            />
+          )}
+
+          {activeTab === 'dish' && (
+            <DishSearch
+              apiKey={apiKey}
+              onAddFoodItem={handleItemAdded}
+              onOpenSettings={() => {
+                onClose();
+                onOpenSettings();
               }}
             />
           )}

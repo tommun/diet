@@ -2,6 +2,30 @@
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
+export interface Ingredient {
+  name: string;
+  amountGrams: number;
+  unitName?: string; // "g", "個", "枚" など
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  basePer100g?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
+}
+
+export interface RecipeDish {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  ingredients: Ingredient[];
+}
+
 export interface FoodItem {
   id: string;
   name: string;
@@ -11,8 +35,9 @@ export interface FoodItem {
   carbs: number;
   weightGrams?: number;
   imageUrl?: string; // スクショや写真のデータURL (サムネイル)
-  category?: 'staple' | 'packaged' | 'custom';
-  stapleKey?: string; // 主食キー（white_rice, pasta_dry, etc.）
+  category?: 'staple' | 'packaged' | 'dish' | 'custom';
+  stapleKey?: string; // 主食キー
+  ingredients?: Ingredient[]; // 料理を構成する材料・分量リスト
   createdAt: string;
 }
 
@@ -41,7 +66,7 @@ export interface StaplePreset {
   proteinPer100g: number;
   fatPer100g: number;
   carbsPer100g: number;
-  gramsPerUnit?: number; // 1枚あたり何gか（例: 食パン6枚切り = 60g）
+  gramsPerUnit?: number; // 1枚あたり何gか
   note?: string;
 }
 

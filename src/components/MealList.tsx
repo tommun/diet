@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MealType, FoodItem } from '../types';
-import { Plus, Trash2, SunMedium, Sun, Moon, Coffee, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, SunMedium, Sun, Moon, Coffee, Image as ImageIcon, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 
 interface MealListProps {
   items: FoodItem[];
@@ -15,6 +15,12 @@ export const MealList: React.FC<MealListProps> = ({
   onOpenLogModal,
   onDeleteItem,
 }) => {
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedItemId((prev) => (prev === id ? null : id));
+  };
+
   const mealSections: { type: MealType; title: string; icon: React.ReactNode; color: string }[] = [
     { type: 'breakfast', title: '朝食', icon: <SunMedium size={18} className="text-amber-500" />, color: 'amber' },
     { type: 'lunch', title: '昼食', icon: <Sun size={18} className="text-orange-500" />, color: 'orange' },
@@ -92,66 +98,118 @@ export const MealList: React.FC<MealListProps> = ({
           {/* アイテム一覧 */}
           {group.items.length === 0 ? (
             <div className="py-6 text-center text-xs text-slate-400 font-medium">
-              まだ記録がありません。「記録する」から写真や主食を追加してください
+              まだ記録がありません。「記録する」から主食や料理を追加してください
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {group.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="px-4 py-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors group"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* 画像サムネイル（あれば表示） */}
-                    {item.imageUrl ? (
-                      <div className="w-11 h-11 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-900">
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
-                        <span className="text-xs font-black text-slate-500">
-                          {item.category === 'staple' ? '🍚' : '🍽️'}
-                        </span>
-                      </div>
-                    )}
+              {group.items.map((item) => {
+                const isExpanded = expandedItemId === item.id;
+                const hasIngredients = item.ingredients && item.ingredients.length > 0;
 
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-slate-800">{item.name}</span>
-                        {item.category === 'staple' && (
-                          <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-200 px-1 rounded-sm font-semibold">
-                            主食
-                          </span>
+                return (
+                  <div key={item.id} className="transition-colors hover:bg-slate-50/50">
+                    <div className="px-4 py-3 flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        {/* 画像サムネイル */}
+                        {item.imageUrl ? (
+                          <div className="w-11 h-11 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-900">
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 shrink-0">
+                            <span className="text-xs font-black text-slate-500">
+                              {item.category === 'staple' ? '🍚' : item.category === 'dish' ? '🍲' : '🍽️'}
+                            </span>
+                          </div>
                         )}
-                        {item.imageUrl && (
-                          <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1 rounded-sm font-semibold flex items-center gap-0.5">
-                            <ImageIcon size={10} /> 写真有
-                          </span>
-                        )}
+
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-sm text-slate-800">{item.name}</span>
+                            {item.category === 'staple' && (
+                              <span className="text-[10px] bg-sky-50 text-sky-700 border border-sky-200 px-1 rounded-sm font-semibold">
+                                主食
+                              </span>
+                            )}
+                            {item.category === 'dish' && (
+                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1 rounded-sm font-semibold flex items-center gap-0.5">
+                                <Layers size={10} /> 材料内訳有
+                              </span>
+                            )}
+                            {item.imageUrl && (
+                              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1 rounded-sm font-semibold flex items-center gap-0.5">
+                                <ImageIcon size={10} /> 写真有
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mt-0.5">
+                            <span className="font-bold text-slate-700">{item.calories} kcal</span>
+                            <span>•</span>
+                            <span className="text-orange-600">P:{item.protein}g</span>
+                            <span className="text-amber-600">F:{item.fat}g</span>
+                            <span className="text-sky-600">C:{item.carbs}g</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mt-0.5">
-                        <span className="font-bold text-slate-700">{item.calories} kcal</span>
-                        <span>•</span>
-                        <span className="text-orange-600">P:{item.protein}g</span>
-                        <span className="text-amber-600">F:{item.fat}g</span>
-                        <span className="text-sky-600">C:{item.carbs}g</span>
+
+                      <div className="flex items-center gap-1">
+                        {/* 材料内訳のアコーディオン展開ボタン */}
+                        {hasIngredients && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(item.id)}
+                            className="px-2 py-1 text-xs font-semibold text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 flex items-center gap-0.5 transition-all"
+                            title="材料内訳を見る"
+                          >
+                            <span className="text-[11px] hidden sm:inline">内訳</span>
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => onDeleteItem(item.id)}
+                          className="opacity-40 group-hover:opacity-100 text-slate-400 hover:text-rose-500 p-2 rounded-lg hover:bg-rose-50 transition-all"
+                          title="削除"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
-                  </div>
 
-                  <button
-                    onClick={() => onDeleteItem(item.id)}
-                    className="opacity-40 group-hover:opacity-100 text-slate-400 hover:text-rose-500 p-2 rounded-lg hover:bg-rose-50 transition-all"
-                    title="削除"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+                    {/* 材料内訳アコーディオン展開エリア */}
+                    {hasIngredients && isExpanded && (
+                      <div className="px-4 pb-3 pt-1 bg-slate-50/80 border-t border-slate-100 animate-in fade-in">
+                        <div className="text-[11px] font-bold text-slate-600 mb-1.5 flex items-center gap-1">
+                          <Layers size={12} className="text-emerald-600" />
+                          <span>構成材料と分量（何が何グラム入っているか）:</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {item.ingredients!.map((ing, i) => (
+                            <div
+                              key={i}
+                              className="bg-white border border-slate-200/80 rounded-lg p-2 text-xs flex items-center justify-between"
+                            >
+                              <span className="font-semibold text-slate-700">{ing.name}</span>
+                              <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
+                                <span className="font-bold text-slate-800">{ing.amountGrams}g</span>
+                                <span className="text-slate-300">|</span>
+                                <span>{ing.calories}kcal</span>
+                                <span className="text-orange-600 font-semibold">P:{ing.protein}g</span>
+                                <span className="text-amber-600 font-semibold">F:{ing.fat}g</span>
+                                <span className="text-sky-600 font-semibold">C:{ing.carbs}g</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
