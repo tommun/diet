@@ -46,8 +46,12 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* ロゴ・アプリ名 */}
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20 font-black text-lg">
-            P
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-orange-500/20 border border-slate-200 shrink-0">
+            <img
+              src={`${import.meta.env.BASE_URL}icon.jpg`}
+              alt="PFC Diet Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
