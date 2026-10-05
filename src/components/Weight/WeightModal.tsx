@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { WeightRecord } from '../../types';
-import { X, Check, TrendingDown, TrendingUp, Trash2, Plus } from 'lucide-react';
+import { WeightRecord, UserProfile } from '../../types';
+import { calculateBodyFatPercentage, calculateBMI } from '../../lib/bodyFatCalculator';
+import { X, Check, TrendingDown, TrendingUp, Trash2, Plus, Zap, User, Settings2 } from 'lucide-react';
 
 interface WeightModalProps {
   isOpen: boolean;
@@ -8,9 +9,10 @@ interface WeightModalProps {
   currentDate: string;
   weightRecords: WeightRecord[];
   targetWeight?: number;
+  profile?: UserProfile;
   onSaveWeight: (record: Omit<WeightRecord, 'id' | 'createdAt'>) => void;
   onDeleteWeight: (recordId: string) => void;
-  onUpdateTargetWeight?: (target: number) => void;
+  onSaveProfile?: (profile: UserProfile) => void;
 }
 
 export const WeightModal: React.FC<WeightModalProps> = ({
@@ -19,8 +21,10 @@ export const WeightModal: React.FC<WeightModalProps> = ({
   currentDate,
   weightRecords,
   targetWeight = 62,
+  profile = { heightCm: 170, age: 30, gender: 'male' },
   onSaveWeight,
   onDeleteWeight,
+  onSaveProfile,
 }) => {
   // 入力フォーム用ステート
   const [inputDate, setInputDate] = useState<string>(currentDate);
@@ -29,6 +33,12 @@ export const WeightModal: React.FC<WeightModalProps> = ({
   const [weight, setWeight] = useState<number | ''>(existingRecordForDate?.weight || '');
   const [bodyFat, setBodyFat] = useState<number | ''>(existingRecordForDate?.bodyFat || '');
   const [note, setNote] = useState<string>(existingRecordForDate?.note || '');
+
+  // プロフィール用ステート
+  const [heightCm, setHeightCm] = useState<number>(profile.heightCm || 170);
+  const [age, setAge] = useState<number>(profile.age || 30);
+  const [gender, setGender] = useState<'male' | 'female'>(profile.gender || 'male');
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
 
   // グラフ表示期間フィルター: '7d' | '30d' | '90d' | 'all'
   const [period, setPeriod] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
@@ -49,11 +59,40 @@ export const WeightModal: React.FC<WeightModalProps> = ({
       setBodyFat(rec.bodyFat || '');
       setNote(rec.note || '');
     } else {
-      // 最新の体重を初期値候補としてセット
       const latest = weightRecords[weightRecords.length - 1];
       if (latest) {
         setWeight(latest.weight);
       }
+    }
+  };
+
+  // プロフィールの保存
+  const handleSaveProfileData = () => {
+    if (onSaveProfile) {
+      onSaveProfile({
+        heightCm: Number(heightCm) || 170,
+        age: Number(age) || 30,
+        gender,
+      });
+    }
+    setShowProfileEdit(false);
+  };
+
+  // 体重に基づくリアルタイムBMIと体脂肪率推定
+  const currentBMI = useMemo(() => {
+    if (!weight || !heightCm) return 0;
+    return calculateBMI(Number(weight), heightCm);
+  }, [weight, heightCm]);
+
+  const estimatedBodyFat = useMemo(() => {
+    if (!weight || !heightCm || !age) return 0;
+    return calculateBodyFatPercentage(Number(weight), heightCm, age, gender);
+  }, [weight, heightCm, age, gender]);
+
+  // 体脂肪率のワンタップ自動適用
+  const handleApplyEstimatedBodyFat = () => {
+    if (estimatedBodyFat > 0) {
+      setBodyFat(estimatedBodyFat);
     }
   };
 
@@ -122,24 +161,20 @@ export const WeightModal: React.FC<WeightModalProps> = ({
           : padding + (i / (filteredRecords.length - 1)) * usableWidth;
       const y = height - padding - ((r.weight - minWeight) / weightRange) * usableHeight;
 
-      // 直前との差分
       const prev = i > 0 ? filteredRecords[i - 1] : null;
       const diff = prev ? Math.round((r.weight - prev.weight) * 10) / 10 : undefined;
 
       return { x, y, record: r, diff };
     });
 
-    // パス文字列生成
     const pathD = points.reduce((acc, p, i) => {
       return i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`;
     }, '');
 
-    // グラデーション塗りつぶし用エリア
     const areaD = points.length > 0
       ? `${pathD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
       : '';
 
-    // 目標体重ラインのY座標
     const targetY =
       targetWeight
         ? height - padding - ((targetWeight - minWeight) / weightRange) * usableHeight
@@ -164,7 +199,7 @@ export const WeightModal: React.FC<WeightModalProps> = ({
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-base sm:text-lg font-black text-slate-800">
-              体重推移・グラフ管理
+              体重・体脂肪推移グラフ
             </h2>
           </div>
           <button
@@ -275,7 +310,6 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                     </linearGradient>
                   </defs>
 
-                  {/* 背景グリッド横線 */}
                   <line
                     x1={graphDimensions.padding}
                     y1={graphDimensions.padding}
@@ -293,7 +327,7 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                     strokeWidth="1"
                   />
 
-                  {/* 目標体重ライン (点線) */}
+                  {/* 目標体重ライン */}
                   {graphData.targetY !== null && (
                     <g>
                       <line
@@ -318,12 +352,10 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                     </g>
                   )}
 
-                  {/* エリアグラデーション */}
                   {graphData.areaD && (
                     <path d={graphData.areaD} fill="url(#weightAreaGrad)" />
                   )}
 
-                  {/* 折れ線 */}
                   {graphData.pathD && (
                     <path
                       d={graphData.pathD}
@@ -335,7 +367,6 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                     />
                   )}
 
-                  {/* 各データ点 */}
                   {graphData.points.map((pt, i) => (
                     <circle
                       key={i}
@@ -359,7 +390,6 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                     />
                   ))}
 
-                  {/* 軸ラベル */}
                   <text
                     x={graphDimensions.padding}
                     y={graphDimensions.height - 10}
@@ -381,7 +411,6 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                   </text>
                 </svg>
 
-                {/* ホバーツールチップ */}
                 {hoveredPoint && (
                   <div
                     className="absolute z-10 bg-slate-900 text-white text-xs px-2.5 py-1.5 rounded-xl shadow-lg pointer-events-none -translate-x-1/2 -translate-y-full mb-2 font-bold"
@@ -415,6 +444,85 @@ export const WeightModal: React.FC<WeightModalProps> = ({
             )}
           </div>
 
+          {/* 身体プロフィール設定（身長・年齢・性別） */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <User size={15} className="text-orange-600" />
+                <span className="text-xs font-extrabold text-slate-800">
+                  身体プロフィール（体脂肪率の自動推定に使用）
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {heightCm}cm / {age}歳 / {gender === 'male' ? '男性' : '女性'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProfileEdit(!showProfileEdit)}
+                className="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+              >
+                <Settings2 size={13} />
+                <span>{showProfileEdit ? '閉じる' : '設定変更'}</span>
+              </button>
+            </div>
+
+            {showProfileEdit && (
+              <div className="mt-3 pt-3 border-t border-slate-200 space-y-3">
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                      身長 (cm)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                      年齢
+                    </label>
+                    <input
+                      type="number"
+                      value={age}
+                      onChange={(e) => setAge(Number(e.target.value))}
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                      性別
+                    </label>
+                    <select
+                      value={gender}
+                      onChange={(e: any) => setGender(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold"
+                    >
+                      <option value="male">男性</option>
+                      <option value="female">女性</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveProfileData}
+                    className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1"
+                  >
+                    <Check size={13} />
+                    <span>プロフィールを保存</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* 体重入力フォーム */}
           <form
             onSubmit={handleFormSubmit}
@@ -425,7 +533,11 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                 <Plus size={14} className="text-orange-600" />
                 <span>体重を記録・更新</span>
               </span>
-              <span className="text-[11px] text-slate-400">同じ日付のデータは上書き更新されます</span>
+              {currentBMI > 0 && (
+                <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                  BMI: {currentBMI}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -458,17 +570,41 @@ export const WeightModal: React.FC<WeightModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-600 mb-1">
-                  体脂肪率 (%) 任意
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={bodyFat}
-                  onChange={(e) => setBodyFat(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="例: 18.2"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] font-bold text-slate-600">
+                    体脂肪率 (%)
+                  </label>
+                  {estimatedBodyFat > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleApplyEstimatedBodyFat}
+                      className="text-[10px] font-bold text-orange-600 hover:text-orange-700 hover:underline flex items-center gap-0.5"
+                      title="Deurenberg式で自動推定"
+                    >
+                      <Zap size={11} className="fill-orange-500 text-orange-500" />
+                      <span>推定 {estimatedBodyFat}% を適用</span>
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={bodyFat}
+                    onChange={(e) => setBodyFat(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder={estimatedBodyFat > 0 ? `推定: ${estimatedBodyFat}` : '例: 18.2'}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-800"
+                  />
+                  {estimatedBodyFat > 0 && bodyFat === '' && (
+                    <button
+                      type="button"
+                      onClick={handleApplyEstimatedBodyFat}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-orange-100 hover:bg-orange-200 text-orange-800 px-2 py-0.5 rounded-md font-bold transition-colors"
+                    >
+                      自動計算
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -508,7 +644,9 @@ export const WeightModal: React.FC<WeightModalProps> = ({
                         <span className="font-bold text-slate-700">{rec.date}</span>
                         <span className="font-black text-slate-800 text-sm">{rec.weight} kg</span>
                         {rec.bodyFat && (
-                          <span className="text-slate-400 font-semibold">{rec.bodyFat}%</span>
+                          <span className="text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded-md text-[11px]">
+                            {rec.bodyFat}%
+                          </span>
                         )}
                         {rec.note && (
                           <span className="text-slate-400 text-[11px] truncate max-w-[120px]">

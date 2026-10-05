@@ -70,6 +70,12 @@ export interface WeightRecord {
   createdAt: string;
 }
 
+export interface UserProfile {
+  heightCm?: number; // 身長 (cm)
+  age?: number; // 年齢
+  gender?: 'male' | 'female'; // 性別
+}
+
 export interface TargetPFC {
   calories: number;
   protein: number;
@@ -95,6 +101,7 @@ export interface StaplePreset {
 
 export interface AppSettings {
   geminiApiKey?: string;
+  profile?: UserProfile;
   targetPFC: TargetPFC;
   staplePresets: StaplePreset[];
   customPresets: Omit<FoodItem, 'id' | 'createdAt'>[]; // よく食べる食品

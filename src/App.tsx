@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { MealType, FoodItem, MealRecord, AppSettings, WeightRecord } from './types';
+import { MealType, FoodItem, MealRecord, AppSettings, WeightRecord, UserProfile } from './types';
 import {
   loadSettings,
   saveSettings,
@@ -207,6 +207,13 @@ export function App() {
     setIsLogModalOpen(true);
   };
 
+  // プロフィール更新
+  const handleSaveProfile = (newProfile: UserProfile) => {
+    const updated: AppSettings = { ...settings, profile: newProfile };
+    setSettings(updated);
+    saveSettings(updated);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* ヘッダー */}
@@ -271,8 +278,10 @@ export function App() {
         currentDate={currentDate}
         weightRecords={weightRecords}
         targetWeight={settings.targetPFC.targetWeight || 62}
+        profile={settings.profile}
         onSaveWeight={handleSaveWeight}
         onDeleteWeight={handleDeleteWeight}
+        onSaveProfile={handleSaveProfile}
       />
 
       <TargetSettingsModal
