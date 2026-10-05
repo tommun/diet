@@ -2,6 +2,7 @@ import { ChainMenuItem } from '../types';
 
 export const CHAIN_RESTAURANTS_LIST = [
   'すべて',
+  'コンビニ',
   '吉野家',
   'すき家',
   '松屋',
@@ -9,12 +10,279 @@ export const CHAIN_RESTAURANTS_LIST = [
   'ケンタッキー',
   'サイゼリヤ',
   'やよい軒',
-  '大戸屋',
-  'コンビニ'
+  '大戸屋'
 ] as const;
 
 export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
+  // ==========================================
+  // コンビニ (セブン・ローソン・ファミマ)
+  // ==========================================
+  // おにぎり
+  {
+    id: 'cvs_seven_onigiri_tunamayo',
+    restaurant: 'セブン-イレブン',
+    name: '手巻おにぎり ツナマヨネーズ',
+    category: 'おにぎり',
+    calories: 246,
+    protein: 4.8,
+    fat: 9.2,
+    carbs: 36.1,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_seven_onigiri_shake',
+    restaurant: 'セブン-イレブン',
+    name: '手巻おにぎり 炭火焼熟成紅鮭',
+    category: 'おにぎり',
+    calories: 175,
+    protein: 5.1,
+    fat: 1.2,
+    carbs: 36.0,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_seven_onigiri_konbu',
+    restaurant: 'セブン-イレブン',
+    name: '手巻おにぎり 日高昆布',
+    category: 'おにぎり',
+    calories: 171,
+    protein: 3.5,
+    fat: 0.8,
+    carbs: 37.5,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_seven_onigiri_mochimugi',
+    restaurant: 'セブン-イレブン',
+    name: 'もち麦おにぎり 枝豆と昆布',
+    category: 'おにぎり',
+    calories: 165,
+    protein: 4.5,
+    fat: 1.5,
+    carbs: 33.4,
+    note: '公式公表値 (食物繊維豊富)'
+  },
+  {
+    id: 'cvs_lawson_onigiri_shake',
+    restaurant: 'ローソン',
+    name: '手巻おにぎり 熟成紀州南高梅',
+    category: 'おにぎり',
+    calories: 164,
+    protein: 3.2,
+    fat: 0.6,
+    carbs: 36.5,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_famima_onigiri_syake',
+    restaurant: 'ファミリーマート',
+    name: '手巻 焼鮭',
+    category: 'おにぎり',
+    calories: 182,
+    protein: 5.4,
+    fat: 1.5,
+    carbs: 36.7,
+    note: '公式公表値'
+  },
+
+  // チキン・ホットスナック
+  {
+    id: 'cvs_lawson_karaagekun_reg',
+    restaurant: 'ローソン',
+    name: 'からあげクン (レギュラー)',
+    category: 'ホットスナック',
+    calories: 220,
+    protein: 14.0,
+    fat: 14.0,
+    carbs: 8.0,
+    note: '公式公表値 (5個あたり)'
+  },
+  {
+    id: 'cvs_lawson_karaagekun_red',
+    restaurant: 'ローソン',
+    name: 'からあげクン (レッド)',
+    category: 'ホットスナック',
+    calories: 225,
+    protein: 14.8,
+    fat: 14.5,
+    carbs: 8.9,
+    note: '公式公表値 (5個あたり)'
+  },
+  {
+    id: 'cvs_lawson_karaagekun_cheese',
+    restaurant: 'ローソン',
+    name: 'からあげクン (北海道チーズ)',
+    category: 'ホットスナック',
+    calories: 235,
+    protein: 14.5,
+    fat: 15.5,
+    carbs: 9.3,
+    note: '公式公表値 (5個あたり)'
+  },
+  {
+    id: 'cvs_famima_famichiki',
+    restaurant: 'ファミリーマート',
+    name: 'ファミチキ (骨なし)',
+    category: 'ホットスナック',
+    calories: 252,
+    protein: 12.7,
+    fat: 15.7,
+    carbs: 14.8,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_famima_crispy',
+    restaurant: 'ファミリーマート',
+    name: 'クリスピーチキン (プレーン)',
+    category: 'ホットスナック',
+    calories: 141,
+    protein: 14.1,
+    fat: 4.8,
+    carbs: 10.3,
+    note: '公式公表値 (低脂質・高タンパク)'
+  },
+  {
+    id: 'cvs_seven_nanachiki',
+    restaurant: 'セブン-イレブン',
+    name: 'ななチキ (骨なし)',
+    category: 'ホットスナック',
+    calories: 197,
+    protein: 13.9,
+    fat: 11.5,
+    carbs: 9.5,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_seven_agedori',
+    restaurant: 'セブン-イレブン',
+    name: '揚げ鶏',
+    category: 'ホットスナック',
+    calories: 185,
+    protein: 14.5,
+    fat: 10.8,
+    carbs: 7.5,
+    note: '公式公表値'
+  },
+
+  // サラダチキン
+  {
+    id: 'cvs_seven_salad_chicken_plain',
+    restaurant: 'セブン-イレブン',
+    name: '糖質0g サラダチキン (プレーン)',
+    category: 'サラダチキン',
+    calories: 114,
+    protein: 24.1,
+    fat: 1.2,
+    carbs: 0.1,
+    note: '公式公表値 (1個110g)'
+  },
+  {
+    id: 'cvs_seven_salad_chicken_herb',
+    restaurant: 'セブン-イレブン',
+    name: '糖質0g サラダチキン (ハーブ)',
+    category: 'サラダチキン',
+    calories: 108,
+    protein: 23.5,
+    fat: 1.4,
+    carbs: 0.2,
+    note: '公式公表値 (1個110g)'
+  },
+  {
+    id: 'cvs_seven_salad_chicken_smoke',
+    restaurant: 'セブン-イレブン',
+    name: '糖質0g サラダチキン (スモーク)',
+    category: 'サラダチキン',
+    calories: 116,
+    protein: 24.3,
+    fat: 1.5,
+    carbs: 0.1,
+    note: '公式公表値 (1個110g)'
+  },
+  {
+    id: 'cvs_seven_salad_chicken_bar',
+    restaurant: 'セブン-イレブン',
+    name: 'サラダチキンバー (プレーン)',
+    category: 'サラダチキン',
+    calories: 65,
+    protein: 13.4,
+    fat: 1.1,
+    carbs: 0.2,
+    note: '公式公表値 (スティックタイプ)'
+  },
+
+  // サンドイッチ・ロールパン
+  {
+    id: 'cvs_seven_chicken_egg',
+    restaurant: 'セブン-イレブン',
+    name: 'たんぱく質が摂れるチキン＆エッグ',
+    category: 'サンドイッチ',
+    calories: 340,
+    protein: 26.0,
+    fat: 12.0,
+    carbs: 28.0,
+    note: '公式公表値 (超人気PFCバランス食)'
+  },
+  {
+    id: 'cvs_seven_namaham_roll',
+    restaurant: 'セブン-イレブン',
+    name: '生ハム＆モッツァレラロール',
+    category: 'ロールパン',
+    calories: 285,
+    protein: 15.2,
+    fat: 11.5,
+    carbs: 29.8,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_seven_lettuce_sand',
+    restaurant: 'セブン-イレブン',
+    name: 'シャキシャキレタスサンド',
+    category: 'サンドイッチ',
+    calories: 224,
+    protein: 8.8,
+    fat: 9.9,
+    carbs: 24.9,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_lawson_bran_bread',
+    restaurant: 'ローソン',
+    name: 'ブランパン (2個入)',
+    category: 'ベーカリー',
+    calories: 132,
+    protein: 11.4,
+    fat: 5.4,
+    carbs: 4.4,
+    note: '公式公表値 (超低糖質・高タンパク)'
+  },
+
+  // プロテインバー
+  {
+    id: 'cvs_inbar_protein_choco',
+    restaurant: 'コンビニ',
+    name: 'inバー プロテイン ベイクドチョコ',
+    category: 'プロテインバー',
+    calories: 209,
+    protein: 15.8,
+    fat: 10.7,
+    carbs: 12.1,
+    note: '公式公表値'
+  },
+  {
+    id: 'cvs_ippon_manzoku_choco',
+    restaurant: 'コンビニ',
+    name: '1本満足バー プロテインチョコ',
+    category: 'プロテインバー',
+    calories: 185,
+    protein: 15.0,
+    fat: 8.5,
+    carbs: 12.0,
+    note: '公式公表値'
+  },
+
+  // ==========================================
   // 吉野家
+  // ==========================================
   {
     id: 'yoshinoya_gyudon_nami',
     restaurant: '吉野家',
@@ -60,7 +328,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値'
   },
 
+  // ==========================================
   // すき家
+  // ==========================================
   {
     id: 'sukiya_gyudon_nami',
     restaurant: 'すき家',
@@ -95,7 +365,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値'
   },
 
+  // ==========================================
   // 松屋
+  // ==========================================
   {
     id: 'matsuya_gyumeshi_nami',
     restaurant: '松屋',
@@ -119,7 +391,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値'
   },
 
+  // ==========================================
   // マクドナルド
+  // ==========================================
   {
     id: 'mcd_bigmac',
     restaurant: 'マクドナルド',
@@ -176,7 +450,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値'
   },
 
+  // ==========================================
   // ケンタッキー
+  // ==========================================
   {
     id: 'kfc_original_chicken',
     restaurant: 'ケンタッキー',
@@ -200,7 +476,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値'
   },
 
+  // ==========================================
   // サイゼリヤ
+  // ==========================================
   {
     id: 'saizeriya_doria',
     restaurant: 'サイゼリヤ',
@@ -257,7 +535,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値'
   },
 
+  // ==========================================
   // やよい軒
+  // ==========================================
   {
     id: 'yayoiken_shogayaki',
     restaurant: 'やよい軒',
@@ -292,7 +572,9 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     note: '公式公表値 (良質な脂質・高タンパク)'
   },
 
+  // ==========================================
   // 大戸屋
+  // ==========================================
   {
     id: 'ootoya_kurozu_chicken',
     restaurant: '大戸屋',
@@ -313,74 +595,6 @@ export const POPULAR_CHAIN_MENU: ChainMenuItem[] = [
     protein: 37.4,
     fat: 44.2,
     carbs: 68.4,
-    note: '公式公表値'
-  },
-
-  // コンビニ
-  {
-    id: 'cvs_seven_salad_chicken',
-    restaurant: 'コンビニ',
-    name: 'セブン 糖質0gサラダチキン (プレーン)',
-    category: 'コンビニ',
-    calories: 114,
-    protein: 24.1,
-    fat: 1.2,
-    carbs: 0.1,
-    note: '公式公表値 (1個110gあたり)'
-  },
-  {
-    id: 'cvs_seven_onigiri_tunamayo',
-    restaurant: 'コンビニ',
-    name: 'セブン 手巻おにぎり ツナマヨネーズ',
-    category: 'コンビニ',
-    calories: 246,
-    protein: 4.8,
-    fat: 9.2,
-    carbs: 36.1,
-    note: '公式公表値'
-  },
-  {
-    id: 'cvs_seven_chicken_egg',
-    restaurant: 'コンビニ',
-    name: 'セブン たんぱく質が摂れるチキン＆エッグ',
-    category: 'コンビニ',
-    calories: 340,
-    protein: 26.0,
-    fat: 12.0,
-    carbs: 28.0,
-    note: '公式公表値'
-  },
-  {
-    id: 'cvs_lawson_karaagekun',
-    restaurant: 'コンビニ',
-    name: 'ローソン からあげクン (レギュラー)',
-    category: 'コンビニ',
-    calories: 220,
-    protein: 14.0,
-    fat: 14.0,
-    carbs: 8.0,
-    note: '公式公表値 (1パックあたり)'
-  },
-  {
-    id: 'cvs_lawson_bran_bread',
-    restaurant: 'コンビニ',
-    name: 'ローソン ブランパン (2個入)',
-    category: 'コンビニ',
-    calories: 132,
-    protein: 11.4,
-    fat: 5.4,
-    carbs: 4.4,
-    note: '公式公表値 (2個あたり)'
-  },
-  {
-    id: 'cvs_famima_famichiki',
-    restaurant: 'コンビニ',
-    name: 'ファミマ ファミチキ (骨なし)',
-    category: 'コンビニ',
-    calories: 252,
-    protein: 12.7,
-    fat: 15.7,
-    carbs: 14.8,
     note: '公式公表値'
   }
 ];
