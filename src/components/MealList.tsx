@@ -135,6 +135,11 @@ export const MealList: React.FC<MealListProps> = ({
                                 主食
                               </span>
                             )}
+                            {item.category === 'chain' && (
+                              <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1 rounded-sm font-semibold">
+                                🏢 {item.restaurantName || '外食'}
+                              </span>
+                            )}
                             {item.category === 'dish' && (
                               <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1 rounded-sm font-semibold flex items-center gap-0.5">
                                 <Layers size={10} /> 材料内訳有

@@ -113,8 +113,8 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
             }`}
           >
             <Soup size={15} />
-            <span>料理検索（材料内訳）</span>
-            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded-sm">NEW</span>
+            <span>料理・チェーン店検索</span>
+            <span className="text-[10px] bg-orange-100 text-orange-800 px-1 rounded-sm">公式PFC</span>
           </button>
 
           <button

@@ -1,4 +1,4 @@
-import { RecipeDish } from '../types';
+import { RecipeDish, ChainMenuItem } from '../types';
 
 export interface ExtractedNutrition {
   name?: string;
@@ -176,5 +176,78 @@ export async function decomposeDishRecipe(
         carbs: Math.round(((Number(ing.carbs) || 0) / (Number(ing.amountGrams) || 100)) * 1000) / 10,
       }
     }))
+  };
+}
+
+/**
+ * チェーン店名・メニュー名から公式公表PFCをAIで検索・取得する
+ */
+export async function searchChainMenuItem(
+  query: string,
+  apiKey: string
+): Promise<ChainMenuItem> {
+  if (!apiKey) {
+    throw new Error('Gemini APIキーが設定されていません。設定画面でAPIキーを登録してください。');
+  }
+
+  const prompt = `外食チェーンやコンビニのメニュー「${query}」の公式公表（または一般的な公式基準）の栄養成分情報（カロリー、P、F、C）を特定し、JSON形式のみで回答してください。マークダウンのバッククォートは不要です。
+
+【項目】
+- restaurant: チェーン店名（例: "吉野家", "サイゼリヤ", "マクドナルド", "コメダ珈琲店" など）
+- name: 正式なメニュー名（例: "牛丼 並盛", "ミラノ風ドリア" など）
+- category: カテゴリ（例: "丼もの", "バーガー", "定食" など）
+- calories: カロリー(kcal)。数値のみ
+- protein: たんぱく質(g)。数値のみ
+- fat: 脂質(g)。数値のみ
+- carbs: 炭水化物(g)。数値のみ
+- note: "公式公表値" または "推定公式基準値"
+
+フォーマット例:
+{
+  "restaurant": "マクドナルド",
+  "name": "ビッグマック",
+  "category": "バーガー",
+  "calories": 525,
+  "protein": 25.9,
+  "fat": 28.2,
+  "carbs": 41.8,
+  "note": "公式公表値"
+}
+`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { responseMimeType: "application/json" }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error(`チェーン店メニュー検索のリクエストに失敗しました (${response.status})`);
+  }
+
+  const result = await response.json();
+  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) {
+    throw new Error('AIからチェーン店メニューデータが得られませんでした。');
+  }
+
+  const parsed = JSON.parse(textOutput.trim());
+  return {
+    id: 'chain_ai_' + Date.now(),
+    restaurant: parsed.restaurant || '外食チェーン',
+    name: parsed.name || query,
+    category: parsed.category || '外食メニュー',
+    calories: Number(parsed.calories) || 0,
+    protein: Math.round((Number(parsed.protein) || 0) * 10) / 10,
+    fat: Math.round((Number(parsed.fat) || 0) * 10) / 10,
+    carbs: Math.round((Number(parsed.carbs) || 0) * 10) / 10,
+    note: parsed.note || 'AI特定・公式基準値'
   };
 }

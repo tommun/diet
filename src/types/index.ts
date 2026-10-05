@@ -26,6 +26,18 @@ export interface RecipeDish {
   ingredients: Ingredient[];
 }
 
+export interface ChainMenuItem {
+  id: string;
+  restaurant: string; // "吉野家", "マクドナルド", "サイゼリヤ" など
+  name: string;
+  category: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  note?: string; // "公式公表値", "並盛" など
+}
+
 export interface FoodItem {
   id: string;
   name: string;
@@ -35,7 +47,8 @@ export interface FoodItem {
   carbs: number;
   weightGrams?: number;
   imageUrl?: string; // スクショや写真のデータURL (サムネイル)
-  category?: 'staple' | 'packaged' | 'dish' | 'custom';
+  category?: 'staple' | 'packaged' | 'dish' | 'chain' | 'custom';
+  restaurantName?: string; // チェーン店名
   stapleKey?: string; // 主食キー
   ingredients?: Ingredient[]; // 料理を構成する材料・分量リスト
   createdAt: string;
