@@ -22,6 +22,7 @@ export const TargetSettingsModal: React.FC<TargetSettingsModalProps> = ({
 
   // シミュレーター用ステート
   const [weight, setWeight] = useState<number>(currentTarget.bodyWeight || 65);
+  const [targetWeight, setTargetWeight] = useState<number>(currentTarget.targetWeight || 62);
   const [purpose, setPurpose] = useState<'cut' | 'maintain' | 'bulk'>(currentTarget.purpose || 'maintain');
 
   if (!isOpen) return null;
@@ -68,6 +69,7 @@ export const TargetSettingsModal: React.FC<TargetSettingsModalProps> = ({
       fat: Number(fat),
       carbs: Number(carbs),
       bodyWeight: weight,
+      targetWeight: targetWeight,
       purpose,
     });
     onClose();
@@ -99,16 +101,30 @@ export const TargetSettingsModal: React.FC<TargetSettingsModalProps> = ({
               <span>かんたん自動計算シミュレーター</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-3 gap-2.5 mb-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   現在の体重 (kg)
                 </label>
                 <input
                   type="number"
+                  step="0.1"
                   value={weight}
                   onChange={(e) => setWeight(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-sm font-bold"
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-sm font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  目標体重 (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={targetWeight}
+                  onChange={(e) => setTargetWeight(Number(e.target.value))}
+                  className="w-full px-2.5 py-1.5 bg-white border border-emerald-300 rounded-xl text-sm font-bold text-emerald-800"
                 />
               </div>
 
@@ -119,11 +135,11 @@ export const TargetSettingsModal: React.FC<TargetSettingsModalProps> = ({
                 <select
                   value={purpose}
                   onChange={(e: any) => setPurpose(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-sm font-bold"
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-sm font-bold"
                 >
-                  <option value="cut">減量・ダイエット</option>
-                  <option value="maintain">現状維持・健康管理</option>
-                  <option value="bulk">筋肥大・バルクアップ</option>
+                  <option value="cut">減量</option>
+                  <option value="maintain">維持</option>
+                  <option value="bulk">増量</option>
                 </select>
               </div>
             </div>

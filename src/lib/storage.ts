@@ -1,9 +1,10 @@
-import { AppSettings, MealRecord, FoodItem, TargetPFC } from '../types';
+import { AppSettings, MealRecord, FoodItem, TargetPFC, WeightRecord } from '../types';
 import { DEFAULT_STAPLE_PRESETS } from './stapleData';
 
 const SETTINGS_KEY = 'diet_pfc_settings_v1';
 const MEALS_KEY = 'diet_pfc_meals_v1';
 const FAVORITES_KEY = 'diet_pfc_favorites_v1';
+const WEIGHTS_KEY = 'diet_pfc_weights_v1';
 
 export const DEFAULT_TARGET_PFC: TargetPFC = {
   calories: 2000,
@@ -11,6 +12,7 @@ export const DEFAULT_TARGET_PFC: TargetPFC = {
   fat: 50,      // 22.5%
   carbs: 255,   // 51%
   bodyWeight: 65,
+  targetWeight: 62,
   purpose: 'maintain'
 };
 
@@ -83,6 +85,28 @@ export function saveFavorites(favs: Omit<FoodItem, 'id' | 'createdAt'>[]): void 
   }
 }
 
+// 体重記録の読み込みと保存
+export function loadWeightRecords(): WeightRecord[] {
+  try {
+    const raw = localStorage.getItem(WEIGHTS_KEY);
+    if (!raw) return [];
+    const list: WeightRecord[] = JSON.parse(raw);
+    // 日付順にソート (古い順)
+    return list.sort((a, b) => a.date.localeCompare(b.date));
+  } catch (e) {
+    console.error('Failed to load weights', e);
+    return [];
+  }
+}
+
+export function saveWeightRecords(weights: WeightRecord[]): void {
+  try {
+    localStorage.setItem(WEIGHTS_KEY, JSON.stringify(weights));
+  } catch (e) {
+    console.error('Failed to save weights', e);
+  }
+}
+
 // 今日の日付文字列 (YYYY-MM-DD)
 export function getTodayString(): string {
   const d = new Date();
@@ -98,6 +122,7 @@ export function exportAllData(): string {
     settings: loadSettings(),
     meals: loadMeals(),
     favorites: loadFavorites(),
+    weights: loadWeightRecords(),
     exportedAt: new Date().toISOString()
   };
   return JSON.stringify(data, null, 2);
@@ -109,6 +134,7 @@ export function importAllData(jsonString: string): boolean {
     if (data.settings) saveSettings(data.settings);
     if (data.meals) saveMeals(data.meals);
     if (data.favorites) saveFavorites(data.favorites);
+    if (data.weights) saveWeightRecords(data.weights);
     return true;
   } catch (e) {
     console.error('Import failed', e);

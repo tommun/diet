@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Settings, Target, UtensilsCrossed } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Settings, Target, UtensilsCrossed, Scale } from 'lucide-react';
 
 interface HeaderProps {
   currentDate: string;
@@ -7,6 +7,7 @@ interface HeaderProps {
   onOpenTargetSettings: () => void;
   onOpenStaplesConfig: () => void;
   onOpenSettings: () => void;
+  onOpenWeightModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTargetSettings,
   onOpenStaplesConfig,
   onOpenSettings,
+  onOpenWeightModal,
 }) => {
   // 日付の前日・翌日移動
   const handleShiftDate = (days: number) => {
@@ -93,6 +95,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* 設定・ツールボタン */}
         <div className="flex items-center gap-1">
+          <button
+            onClick={onOpenWeightModal}
+            className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            title="体重推移・グラフ管理"
+          >
+            <Scale size={18} />
+            <span className="hidden md:inline">体重推移</span>
+          </button>
+
           <button
             onClick={onOpenTargetSettings}
             className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"

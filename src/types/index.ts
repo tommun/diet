@@ -61,12 +61,22 @@ export interface MealRecord {
   date: string; // YYYY-MM-DD
 }
 
+export interface WeightRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  weight: number; // kg
+  bodyFat?: number; // %
+  note?: string;
+  createdAt: string;
+}
+
 export interface TargetPFC {
   calories: number;
   protein: number;
   fat: number;
   carbs: number;
-  bodyWeight?: number; // 体重(kg)基準設定用
+  bodyWeight?: number; // 現在の体重(kg)
+  targetWeight?: number; // 目標体重(kg)
   purpose?: 'cut' | 'maintain' | 'bulk'; // 減量・維持・増量
 }
 

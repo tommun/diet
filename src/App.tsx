@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { MealType, FoodItem, MealRecord, AppSettings } from './types';
+import { MealType, FoodItem, MealRecord, AppSettings, WeightRecord } from './types';
 import {
   loadSettings,
   saveSettings,
@@ -7,6 +7,8 @@ import {
   saveMeals,
   loadFavorites,
   saveFavorites,
+  loadWeightRecords,
+  saveWeightRecords,
   getTodayString,
   DEFAULT_SETTINGS
 } from './lib/storage';
@@ -17,6 +19,7 @@ import { FoodLogModal } from './components/FoodLogger/FoodLogModal';
 import { TargetSettingsModal } from './components/TargetSettingsModal';
 import { StaplesConfigModal } from './components/StaplesConfigModal';
 import { SettingsModal } from './components/SettingsModal';
+import { WeightModal } from './components/Weight/WeightModal';
 import { Plus } from 'lucide-react';
 
 export function App() {
@@ -24,6 +27,7 @@ export function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [meals, setMeals] = useState<MealRecord[]>([]);
   const [favorites, setFavorites] = useState<Omit<FoodItem, 'id' | 'createdAt'>[]>([]);
+  const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
 
   // モーダル管理
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -31,6 +35,7 @@ export function App() {
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
   const [isStaplesModalOpen, setIsStaplesModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
 
   // 初回データロード
   useEffect(() => {
@@ -44,6 +49,8 @@ export function App() {
     setMeals(m);
     const f = loadFavorites();
     setFavorites(f);
+    const w = loadWeightRecords();
+    setWeightRecords(w);
   };
 
   // 現在の日付に該当するMealRecordを取得（または生成）
@@ -156,6 +163,44 @@ export function App() {
     saveFavorites(updated);
   };
 
+  // 体重の追加・更新
+  const handleSaveWeight = (rec: Omit<WeightRecord, 'id' | 'createdAt'>) => {
+    setWeightRecords((prev) => {
+      const existingIdx = prev.findIndex((r) => r.date === rec.date);
+      let updated: WeightRecord[];
+      if (existingIdx >= 0) {
+        updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          ...rec,
+        };
+      } else {
+        const newRecord: WeightRecord = {
+          ...rec,
+          id: 'weight_' + Date.now(),
+          createdAt: new Date().toISOString(),
+        };
+        updated = [...prev, newRecord];
+      }
+      saveWeightRecords(updated);
+      return updated;
+    });
+  };
+
+  // 体重の削除
+  const handleDeleteWeight = (id: string) => {
+    setWeightRecords((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      saveWeightRecords(updated);
+      return updated;
+    });
+  };
+
+  // 今日の体重レコード
+  const todayWeightRecord = useMemo(() => {
+    return weightRecords.find((r) => r.date === currentDate);
+  }, [weightRecords, currentDate]);
+
   // モーダルオープンハンドラー
   const handleOpenLogModal = (type: MealType = 'lunch') => {
     setActiveMealType(type);
@@ -171,6 +216,7 @@ export function App() {
         onOpenTargetSettings={() => setIsTargetModalOpen(true)}
         onOpenStaplesConfig={() => setIsStaplesModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenWeightModal={() => setIsWeightModalOpen(true)}
       />
 
       {/* メインコンテンツ */}
@@ -179,7 +225,9 @@ export function App() {
         <Dashboard
           target={settings.targetPFC}
           items={currentDayItems}
+          todayWeightRecord={todayWeightRecord}
           onOpenTargetSettings={() => setIsTargetModalOpen(true)}
+          onOpenWeightModal={() => setIsWeightModalOpen(true)}
         />
 
         {/* 食事一覧（朝・昼・夕・間食） */}
@@ -215,6 +263,16 @@ export function App() {
         onDeleteFavorite={handleDeleteFavorite}
         onOpenStaplesConfig={() => setIsStaplesModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+      />
+
+      <WeightModal
+        isOpen={isWeightModalOpen}
+        onClose={() => setIsWeightModalOpen(false)}
+        currentDate={currentDate}
+        weightRecords={weightRecords}
+        targetWeight={settings.targetPFC.targetWeight || 62}
+        onSaveWeight={handleSaveWeight}
+        onDeleteWeight={handleDeleteWeight}
       />
 
       <TargetSettingsModal

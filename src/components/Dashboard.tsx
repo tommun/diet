@@ -1,14 +1,22 @@
 import React from 'react';
-import { TargetPFC, FoodItem } from '../types';
-import { Flame, Beef, Droplet, Wheat } from 'lucide-react';
+import { TargetPFC, FoodItem, WeightRecord } from '../types';
+import { Flame, Beef, Droplet, Wheat, Scale } from 'lucide-react';
 
 interface DashboardProps {
   target: TargetPFC;
   items: FoodItem[];
+  todayWeightRecord?: WeightRecord;
   onOpenTargetSettings: () => void;
+  onOpenWeightModal: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ target, items, onOpenTargetSettings }) => {
+export const Dashboard: React.FC<DashboardProps> = ({
+  target,
+  items,
+  todayWeightRecord,
+  onOpenTargetSettings,
+  onOpenWeightModal,
+}) => {
   // 合計摂取量を計算
   const totals = items.reduce(
     (acc, item) => {
@@ -66,16 +74,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ target, items, onOpenTarge
           </div>
         </div>
 
-        {/* 残りカロリー表示 */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
-          <span className="text-xs font-medium text-slate-500">今日あと:</span>
-          <span
-            className={`text-lg font-black ${
-              remaining.calories >= 0 ? 'text-emerald-600' : 'text-rose-500'
-            }`}
+        {/* 残りカロリー & 今日の体重 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenWeightModal}
+            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200/80 px-3 py-2 rounded-xl text-xs font-bold text-emerald-800 transition-colors shadow-2xs"
+            title="体重を記録・グラフを表示"
           >
-            {remaining.calories >= 0 ? `${remaining.calories} kcal` : `${Math.abs(remaining.calories)} kcal 超過`}
-          </span>
+            <Scale size={15} className="text-emerald-600" />
+            {todayWeightRecord ? (
+              <span>
+                今日: <span className="text-sm font-black">{todayWeightRecord.weight}</span> kg
+              </span>
+            ) : (
+              <span>＋ 体重を記録</span>
+            )}
+          </button>
+
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
+            <span className="text-xs font-medium text-slate-500">今日あと:</span>
+            <span
+              className={`text-lg font-black ${
+                remaining.calories >= 0 ? 'text-emerald-600' : 'text-rose-500'
+              }`}
+            >
+              {remaining.calories >= 0 ? `${remaining.calories} kcal` : `${Math.abs(remaining.calories)} kcal 超過`}
+            </span>
+          </div>
         </div>
       </div>
 
