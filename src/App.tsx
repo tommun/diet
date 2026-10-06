@@ -25,6 +25,7 @@ import { StaplesConfigModal } from './components/StaplesConfigModal';
 import { SettingsModal } from './components/SettingsModal';
 import { WeightModal } from './components/Weight/WeightModal';
 import { MealHistoryModal } from './components/MealHistoryModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Plus } from 'lucide-react';
 
 export function App() {
@@ -415,13 +416,15 @@ export function App() {
         onSavePresets={handleSaveStaples}
       />
 
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        settings={settings}
-        onSaveSettings={handleSaveSettings}
-        onDataReload={reloadAllData}
-      />
+      <ErrorBoundary fallbackTitle="設定画面の表示中にエラーが発生しました">
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
+          settings={settings}
+          onSaveSettings={handleSaveSettings}
+          onDataReload={reloadAllData}
+        />
+      </ErrorBoundary>
 
       <MealHistoryModal
         isOpen={isHistoryModalOpen}

@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppSettings } from '../types';
-import { exportAllData, importAllData, appendMeals, USER_SPREADSHEET_URL, getFullSyncData } from '../lib/storage';
+import { exportAllData, importAllData, appendMeals, USER_SPREADSHEET_URL, getFullSyncData, DEFAULT_SETTINGS } from '../lib/storage';
 import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { getMealHistoryByDate } from '../lib/storage';
 import { GAS_TEMPLATE_CODE, syncSaveToSheets } from '../lib/sheetsSync';
@@ -8,7 +8,7 @@ import { GAS_TEMPLATE_CODE, syncSaveToSheets } from '../lib/sheetsSync';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  settings: AppSettings;
+  settings?: AppSettings;
   onSaveSettings: (settings: AppSettings) => void;
   onDataReload: () => void;
 }
@@ -16,12 +16,13 @@ interface SettingsModalProps {
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
-  settings,
+  settings = DEFAULT_SETTINGS,
   onSaveSettings,
   onDataReload,
 }) => {
-  const [apiKey, setApiKey] = useState(settings.geminiApiKey || '');
-  const [gasSyncUrl, setGasSyncUrl] = useState(settings.gasSyncUrl || '');
+  const safeSettings = settings || DEFAULT_SETTINGS;
+  const [apiKey, setApiKey] = useState(safeSettings.geminiApiKey || '');
+  const [gasSyncUrl, setGasSyncUrl] = useState(safeSettings.gasSyncUrl || '');
   const [isSaved, setIsSaved] = useState(false);
   const [isSavedGas, setIsSavedGas] = useState(false);
   const [isCopiedGas, setIsCopiedGas] = useState(false);
@@ -29,12 +30,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (safeSettings) {
+      setApiKey(safeSettings.geminiApiKey || '');
+      setGasSyncUrl(safeSettings.gasSyncUrl || '');
+    }
+  }, [safeSettings, isOpen]);
+
   if (!isOpen) return null;
 
   const handleSaveKey = (e: React.FormEvent) => {
     e.preventDefault();
     onSaveSettings({
-      ...settings,
+      ...safeSettings,
       geminiApiKey: apiKey.trim(),
     });
     setIsSaved(true);
@@ -44,9 +52,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleSaveGas = (e: React.FormEvent) => {
     e.preventDefault();
     onSaveSettings({
-      ...settings,
+      ...safeSettings,
       gasSyncUrl: gasSyncUrl.trim(),
-      spreadsheetUrl: settings.spreadsheetUrl || USER_SPREADSHEET_URL,
+      spreadsheetUrl: safeSettings.spreadsheetUrl || USER_SPREADSHEET_URL,
     });
     setIsSavedGas(true);
     setTimeout(() => setIsSavedGas(false), 2000);
@@ -72,7 +80,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       if (ok) {
         setSyncStatusMsg('✅ スプレッドシートへの保存・同期に成功しました！');
         onSaveSettings({
-          ...settings,
+          ...safeSettings,
           gasSyncUrl: gasSyncUrl.trim(),
           lastSyncedAt: new Date().toISOString(),
         });
@@ -117,33 +125,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const generateObsidianMarkdown = (): string => {
-    const days = getMealHistoryByDate();
-    let md = `---\ntitle: PFC Diet 食事ログ (Obsidian連携)\nexported: ${new Date().toISOString()}\ntags:\n  - diet\n  - pfc\n---\n\n# 🥗 PFC Diet 食事ログ\n\n`;
-    
-    if (days.length === 0) {
-      md += `*まだ食事の記録がありません*\n`;
-      return md;
-    }
-
-    days.forEach((day) => {
-      md += `## 📅 ${day.date}\n\n`;
-      md += `- **総摂取**: **${day.totalCalories} kcal** (P: ${day.totalProtein}g / F: ${day.totalFat}g / C: ${day.totalCarbs}g)\n\n`;
+    try {
+      const days = getMealHistoryByDate() || [];
+      let md = `---\ntitle: PFC Diet 食事ログ (Obsidian連携)\nexported: ${new Date().toISOString()}\ntags:\n  - diet\n  - pfc\n---\n\n# 🥗 PFC Diet 食事ログ\n\n`;
       
-      day.meals.forEach((meal) => {
-        const mealName =
-          meal.mealType === 'breakfast' ? '🌅 朝食' :
-          meal.mealType === 'lunch' ? '☀️ 昼食' :
-          meal.mealType === 'dinner' ? '🌙 夕食' : '☕ 間食';
-        md += `### ${mealName}\n`;
-        meal.items.forEach((item) => {
-          md += `- **${item.name}**${item.weightGrams ? ` (${item.weightGrams}g)` : ''}: ${Math.round(item.calories)} kcal (P: ${item.protein}g, F: ${item.fat}g, C: ${item.carbs}g)\n`;
-        });
-        md += `\n`;
-      });
-      md += `---\n\n`;
-    });
+      if (days.length === 0) {
+        md += `*まだ食事の記録がありません*\n`;
+        return md;
+      }
 
-    return md;
+      days.forEach((day) => {
+        md += `## 📅 ${day.date}\n\n`;
+        md += `- **総摂取**: **${day.totalCalories || 0} kcal** (P: ${day.totalProtein || 0}g / F: ${day.totalFat || 0}g / C: ${day.totalCarbs || 0}g)\n\n`;
+        
+        (day.meals || []).forEach((meal) => {
+          const mealName =
+            meal.mealType === 'breakfast' ? '🌅 朝食' :
+            meal.mealType === 'lunch' ? '☀️ 昼食' :
+            meal.mealType === 'dinner' ? '🌙 夕食' : '☕ 間食';
+          md += `### ${mealName}\n`;
+          (meal.items || []).forEach((item) => {
+            md += `- **${item.name}**${item.weightGrams ? ` (${item.weightGrams}g)` : ''}: ${Math.round(item.calories || 0)} kcal (P: ${item.protein || 0}g, F: ${item.fat || 0}g, C: ${item.carbs || 0}g)\n`;
+          });
+          md += `\n`;
+        });
+        md += `---\n\n`;
+      });
+
+      return md;
+    } catch (e) {
+      console.error('Failed to generate obsidian markdown', e);
+      return '# PFC Diet 食事ログ\n\nエラーが発生しました。';
+    }
   };
 
   const [isCopiedObsidian, setIsCopiedObsidian] = useState(false);
