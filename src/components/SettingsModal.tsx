@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { AppSettings } from '../types';
 import { exportAllData, importAllData, appendMeals } from '../lib/storage';
-import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck } from 'lucide-react';
+import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy } from 'lucide-react';
+import { getMealHistoryByDate } from '../lib/storage';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -61,6 +62,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
     };
     reader.readAsText(file);
+  };
+
+  const generateObsidianMarkdown = (): string => {
+    const days = getMealHistoryByDate();
+    let md = `---\ntitle: PFC Diet 食事ログ (Obsidian連携)\nexported: ${new Date().toISOString()}\ntags:\n  - diet\n  - pfc\n---\n\n# 🥗 PFC Diet 食事ログ\n\n`;
+    
+    if (days.length === 0) {
+      md += `*まだ食事の記録がありません*\n`;
+      return md;
+    }
+
+    days.forEach((day) => {
+      md += `## 📅 ${day.date}\n\n`;
+      md += `- **総摂取**: **${day.totalCalories} kcal** (P: ${day.totalProtein}g / F: ${day.totalFat}g / C: ${day.totalCarbs}g)\n\n`;
+      
+      day.meals.forEach((meal) => {
+        const mealName =
+          meal.mealType === 'breakfast' ? '🌅 朝食' :
+          meal.mealType === 'lunch' ? '☀️ 昼食' :
+          meal.mealType === 'dinner' ? '🌙 夕食' : '☕ 間食';
+        md += `### ${mealName}\n`;
+        meal.items.forEach((item) => {
+          md += `- **${item.name}**${item.weightGrams ? ` (${item.weightGrams}g)` : ''}: ${Math.round(item.calories)} kcal (P: ${item.protein}g, F: ${item.fat}g, C: ${item.carbs}g)\n`;
+        });
+        md += `\n`;
+      });
+      md += `---\n\n`;
+    });
+
+    return md;
+  };
+
+  const [isCopiedObsidian, setIsCopiedObsidian] = useState(false);
+
+  const handleCopyObsidian = () => {
+    const md = generateObsidianMarkdown();
+    navigator.clipboard.writeText(md).then(() => {
+      setIsCopiedObsidian(true);
+      setTimeout(() => setIsCopiedObsidian(false), 2500);
+    });
+  };
+
+  const handleDownloadObsidian = () => {
+    const md = generateObsidianMarkdown();
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pfc_diet_obsidian_${new Date().toISOString().split('T')[0]}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -211,6 +263,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
               </details>
+            </div>
+          </div>
+
+          <hr className="border-slate-100" />
+
+          {/* Obsidian連携 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 font-bold text-slate-800 text-sm">
+              <FileText size={16} className="text-purple-600" />
+              <span>Obsidian 連携 (Markdown出力)</span>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              これまでの食事履歴・PFCバランスをObsidianで美しく管理できるMarkdown形式で出力します。
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleCopyObsidian}
+                className="p-3 border border-purple-200 hover:border-purple-300 bg-purple-50/50 hover:bg-purple-50 rounded-xl text-xs font-bold text-purple-700 flex items-center justify-center gap-1.5 transition-all"
+              >
+                {isCopiedObsidian ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
+                <span>{isCopiedObsidian ? 'コピー完了！' : 'Markdownをコピー'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadObsidian}
+                className="p-3 border border-purple-200 hover:border-purple-300 bg-purple-50/50 hover:bg-purple-50 rounded-xl text-xs font-bold text-purple-700 flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Download size={15} />
+                <span>.mdファイルを保存</span>
+              </button>
             </div>
           </div>
 
