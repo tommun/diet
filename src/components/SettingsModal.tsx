@@ -26,6 +26,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isSaved, setIsSaved] = useState(false);
   const [isSavedGas, setIsSavedGas] = useState(false);
   const [isCopiedGas, setIsCopiedGas] = useState(false);
+  const [isCopiedObsidian, setIsCopiedObsidian] = useState(false);
   const [isTestingSync, setIsTestingSync] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,7 +160,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const [isCopiedObsidian, setIsCopiedObsidian] = useState(false);
 
   const handleCopyObsidian = () => {
     const md = generateObsidianMarkdown();
