@@ -4,7 +4,8 @@ import { PhotoUploader } from './PhotoUploader';
 import { StapleCalculator } from './StapleCalculator';
 import { DishSearch } from './DishSearch';
 import { QuickManualForm } from './QuickManualForm';
-import { X, Camera, Utensils, Zap, SunMedium, Sun, Moon, Coffee, Soup } from 'lucide-react';
+import { FoodHistorySelector } from './FoodHistorySelector';
+import { X, Camera, Utensils, Zap, SunMedium, Sun, Moon, Coffee, Soup, History } from 'lucide-react';
 
 interface FoodLogModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
   onOpenSettings,
 }) => {
   const [mealType, setMealType] = useState<MealType>(defaultMealType);
-  const [activeTab, setActiveTab] = useState<'staple' | 'dish' | 'photo' | 'manual'>('staple');
+  const [activeTab, setActiveTab] = useState<'history' | 'staple' | 'dish' | 'photo' | 'manual'>('history');
 
   if (!isOpen) return null;
 
@@ -88,8 +89,22 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
           </button>
         </div>
 
-        {/* 4つの入力方法タブ */}
+        {/* 入力方法タブ */}
         <div className="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 text-xs font-bold overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-1.5 pb-2.5 px-3 border-b-2 whitespace-nowrap transition-all ${
+              activeTab === 'history'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <History size={15} />
+            <span>履歴から追加</span>
+            <span className="text-[10px] bg-orange-100 text-orange-800 px-1 rounded-sm">最近</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('staple')}
@@ -146,6 +161,21 @@ export const FoodLogModal: React.FC<FoodLogModalProps> = ({
 
         {/* タブコンテンツ */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+          {activeTab === 'history' && (
+            <FoodHistorySelector
+              onAddFoodItem={handleItemAdded}
+              favorites={favorites}
+              onToggleFavorite={(fav) => {
+                const isFav = favorites.some((f) => f.name.trim() === fav.name.trim());
+                if (isFav) {
+                  onDeleteFavorite(fav.name);
+                } else {
+                  onSaveFavorite(fav);
+                }
+              }}
+            />
+          )}
+
           {activeTab === 'staple' && (
             <StapleCalculator
               presets={staplePresets}

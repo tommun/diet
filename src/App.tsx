@@ -21,6 +21,7 @@ import { TargetSettingsModal } from './components/TargetSettingsModal';
 import { StaplesConfigModal } from './components/StaplesConfigModal';
 import { SettingsModal } from './components/SettingsModal';
 import { WeightModal } from './components/Weight/WeightModal';
+import { MealHistoryModal } from './components/MealHistoryModal';
 import { Plus } from 'lucide-react';
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
   const [isStaplesModalOpen, setIsStaplesModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // 初回データロード & URLパラメータによる食事データ自動取り込み
   useEffect(() => {
@@ -255,6 +257,7 @@ export function App() {
         onOpenStaplesConfig={() => setIsStaplesModalOpen(true)}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onOpenWeightModal={() => setIsWeightModalOpen(true)}
+        onOpenHistoryModal={() => setIsHistoryModalOpen(true)}
       />
 
       {/* メインコンテンツ */}
@@ -334,6 +337,13 @@ export function App() {
         onClose={() => setIsSettingsModalOpen(false)}
         settings={settings}
         onSaveSettings={handleSaveSettings}
+        onDataReload={reloadAllData}
+      />
+
+      <MealHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        onSelectDate={setCurrentDate}
         onDataReload={reloadAllData}
       />
     </div>

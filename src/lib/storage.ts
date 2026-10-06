@@ -117,6 +117,137 @@ export function saveFavorites(favs: Omit<FoodItem, 'id' | 'createdAt'>[]): void 
   }
 }
 
+// 過去に食べた食品のユニーク履歴を取得（最新順）
+export function getRecentFoodHistory(limit: number = 60): Array<Omit<FoodItem, 'id' | 'createdAt'> & { lastEatenDate?: string; count?: number }> {
+  try {
+    const meals = loadMeals();
+    // 日付順（新しい順）に並べ替え
+    const sortedMeals = [...meals].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    
+    const map = new Map<string, Omit<FoodItem, 'id' | 'createdAt'> & { lastEatenDate?: string; count: number }>();
+
+    for (const meal of sortedMeals) {
+      for (const item of meal.items) {
+        // 名前とカロリーの組み合わせをキーにして重複判定
+        const key = `${item.name.trim()}_${item.calories}_${item.protein}_${item.fat}_${item.carbs}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            name: item.name,
+            calories: item.calories,
+            protein: item.protein,
+            fat: item.fat,
+            carbs: item.carbs,
+            weightGrams: item.weightGrams,
+            category: item.category,
+            restaurantName: item.restaurantName,
+            stapleKey: item.stapleKey,
+            ingredients: item.ingredients,
+            lastEatenDate: meal.date,
+            count: 1
+          });
+        } else {
+          const existing = map.get(key)!;
+          existing.count += 1;
+        }
+      }
+    }
+
+    return Array.from(map.values()).slice(0, limit);
+  } catch (e) {
+    console.error('Failed to get recent food history', e);
+    return [];
+  }
+}
+
+// 日付ごとの食事記録サマリー一覧（最新日付順）
+export interface DayMealSummary {
+  date: string;
+  totalCalories: number;
+  totalProtein: number;
+  totalFat: number;
+  totalCarbs: number;
+  meals: MealRecord[];
+  itemCount: number;
+}
+
+export function getMealHistoryByDate(): DayMealSummary[] {
+  try {
+    const meals = loadMeals();
+    const dateMap = new Map<string, MealRecord[]>();
+
+    for (const meal of meals) {
+      const d = meal.date || 'unknown';
+      if (!dateMap.has(d)) {
+        dateMap.set(d, []);
+      }
+      dateMap.get(d)!.push(meal);
+    }
+
+    const summaries: DayMealSummary[] = [];
+
+    dateMap.forEach((dayMeals, date) => {
+      let cal = 0;
+      let p = 0;
+      let f = 0;
+      let c = 0;
+      let count = 0;
+
+      for (const m of dayMeals) {
+        for (const item of m.items) {
+          cal += item.calories;
+          p += item.protein;
+          f += item.fat;
+          c += item.carbs;
+          count += 1;
+        }
+      }
+
+      summaries.push({
+        date,
+        totalCalories: Math.round(cal),
+        totalProtein: Math.round(p * 10) / 10,
+        totalFat: Math.round(f * 10) / 10,
+        totalCarbs: Math.round(c * 10) / 10,
+        meals: dayMeals,
+        itemCount: count
+      });
+    });
+
+    // 日付降順（最新順）にソート
+    return summaries.sort((a, b) => b.date.localeCompare(a.date));
+  } catch (e) {
+    console.error('Failed to get meal history by date', e);
+    return [];
+  }
+}
+
+// 過去の日付の食事を別の日付に丸ごとコピー
+export function copyDayMeals(sourceDate: string, targetDate: string): boolean {
+  try {
+    const meals = loadMeals();
+    const sourceMeals = meals.filter(m => m.date === sourceDate);
+    if (sourceMeals.length === 0) return false;
+
+    const copiedMeals: MealRecord[] = sourceMeals.map(m => ({
+      id: 'meal_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      date: targetDate,
+      mealType: m.mealType,
+      items: m.items.map(item => ({
+        ...item,
+        id: 'food_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        createdAt: new Date().toISOString()
+      }))
+    }));
+
+    appendMeals(copiedMeals);
+    return true;
+  } catch (e) {
+    console.error('Failed to copy day meals', e);
+    return false;
+  }
+}
+
+
 // 体重記録の読み込みと保存
 export function loadWeightRecords(): WeightRecord[] {
   try {

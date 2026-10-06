@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Settings, Target, UtensilsCrossed, Scale } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Settings, Target, UtensilsCrossed, Scale, History } from 'lucide-react';
 
 interface HeaderProps {
   currentDate: string;
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenStaplesConfig: () => void;
   onOpenSettings: () => void;
   onOpenWeightModal: () => void;
+  onOpenHistoryModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenStaplesConfig,
   onOpenSettings,
   onOpenWeightModal,
+  onOpenHistoryModal,
 }) => {
   // 日付の前日・翌日移動
   const handleShiftDate = (days: number) => {
@@ -74,7 +76,12 @@ export const Header: React.FC<HeaderProps> = ({
             <ChevronLeft size={16} />
           </button>
           
-          <div className="px-2 font-semibold text-xs sm:text-sm flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onOpenHistoryModal}
+            className="px-2 py-1 font-semibold text-xs sm:text-sm flex items-center gap-1 hover:bg-white hover:shadow-xs rounded-md transition-all cursor-pointer"
+            title="過去の食事履歴一覧を開く"
+          >
             <Calendar size={14} className="text-slate-500 hidden sm:inline" />
             <span>{formatDisplayDate(currentDate)}</span>
             {isToday() && (
@@ -82,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
                 今日
               </span>
             )}
-          </div>
+          </button>
 
           <button
             onClick={() => handleShiftDate(1)}
@@ -95,6 +102,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* 設定・ツールボタン */}
         <div className="flex items-center gap-1">
+          <button
+            onClick={onOpenHistoryModal}
+            className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            title="過去の食事履歴一覧（日別PFC）"
+          >
+            <History size={18} />
+            <span className="hidden md:inline">食事履歴</span>
+          </button>
+
           <button
             onClick={onOpenWeightModal}
             className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
