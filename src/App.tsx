@@ -11,8 +11,11 @@ import {
   saveWeightRecords,
   appendMeals,
   getTodayString,
-  DEFAULT_SETTINGS
+  DEFAULT_SETTINGS,
+  getFullSyncData,
+  applyFullSyncData
 } from './lib/storage';
+import { syncLoadFromSheets, syncSaveToSheets } from './lib/sheetsSync';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { MealList } from './components/MealList';
@@ -30,6 +33,7 @@ export function App() {
   const [meals, setMeals] = useState<MealRecord[]>([]);
   const [favorites, setFavorites] = useState<Omit<FoodItem, 'id' | 'createdAt'>[]>([]);
   const [weightRecords, setWeightRecords] = useState<WeightRecord[]>([]);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   // モーダル管理
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
@@ -72,7 +76,13 @@ export function App() {
     } catch (e) {
       console.error('Failed to import meals from URL parameter', e);
     }
+    const initialSettings = loadSettings();
     reloadAllData();
+
+    // スプレッドシートURLが設定されている場合、起動時にクラウドから最新データを自動取得
+    if (initialSettings.gasSyncUrl && initialSettings.gasSyncUrl.trim()) {
+      pullFromSheets(initialSettings.gasSyncUrl.trim());
+    }
   }, []);
 
   const reloadAllData = () => {
@@ -84,6 +94,67 @@ export function App() {
     setFavorites(f);
     const w = loadWeightRecords();
     setWeightRecords(w);
+  };
+
+  // スプレッドシートからデータを取得して反映
+  const pullFromSheets = async (url: string) => {
+    setIsSyncing(true);
+    try {
+      const remoteData = await syncLoadFromSheets(url);
+      if (remoteData && (remoteData.meals || remoteData.settings)) {
+        applyFullSyncData(remoteData);
+        reloadAllData();
+      }
+    } catch (e) {
+      console.error('Cloud pull failed', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // スプレッドシートへ非同期自動保存（バックグラウンドプッシュ）
+  const pushToSheets = async (overrideSettings?: AppSettings) => {
+    const targetSettings = overrideSettings || settings;
+    if (!targetSettings.gasSyncUrl || !targetSettings.gasSyncUrl.trim()) return;
+
+    setIsSyncing(true);
+    try {
+      const fullData = getFullSyncData();
+      if (overrideSettings) {
+        fullData.settings = overrideSettings;
+      }
+      await syncSaveToSheets(targetSettings.gasSyncUrl.trim(), fullData);
+    } catch (e) {
+      console.error('Cloud push failed', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // 手動同期ボタン（最新取得＆更新）
+  const triggerManualSync = async () => {
+    if (!settings.gasSyncUrl || !settings.gasSyncUrl.trim()) {
+      setIsSettingsModalOpen(true);
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      // まずリモートから取得
+      const remote = await syncLoadFromSheets(settings.gasSyncUrl.trim());
+      if (remote) {
+        applyFullSyncData(remote);
+        reloadAllData();
+      }
+      // 最新ローカル状態を再度プッシュ
+      const full = getFullSyncData();
+      await syncSaveToSheets(settings.gasSyncUrl.trim(), full);
+      alert('スプレッドシートとの同期が完了しました！');
+    } catch (e: any) {
+      console.error('Manual sync failed', e);
+      alert(`同期に失敗しました: ${e.message || 'URLと権限をご確認ください'}`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // 現在の日付に該当するMealRecordを取得（または生成）
@@ -139,6 +210,7 @@ export function App() {
       }
 
       saveMeals(updated);
+      setTimeout(() => pushToSheets(), 300);
       return updated;
     });
   };
@@ -157,6 +229,7 @@ export function App() {
         .filter((m) => m.items.length > 0); // 空の食事レコードは整理
 
       saveMeals(updated);
+      setTimeout(() => pushToSheets(), 300);
       return updated;
     });
   };
@@ -166,6 +239,7 @@ export function App() {
     const updated: AppSettings = { ...settings, targetPFC: newTarget };
     setSettings(updated);
     saveSettings(updated);
+    setTimeout(() => pushToSheets(updated), 300);
   };
 
   // 主食基準値の更新
@@ -173,12 +247,14 @@ export function App() {
     const updated: AppSettings = { ...settings, staplePresets: newPresets };
     setSettings(updated);
     saveSettings(updated);
+    setTimeout(() => pushToSheets(updated), 300);
   };
 
   // アプリ設定の更新
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
     saveSettings(newSettings);
+    pushToSheets(newSettings);
   };
 
   // お気に入り追加
@@ -187,6 +263,7 @@ export function App() {
     const updated = [fav, ...favorites];
     setFavorites(updated);
     saveFavorites(updated);
+    setTimeout(() => pushToSheets(), 300);
   };
 
   // お気に入り削除
@@ -194,6 +271,7 @@ export function App() {
     const updated = favorites.filter((f) => f.name !== name);
     setFavorites(updated);
     saveFavorites(updated);
+    setTimeout(() => pushToSheets(), 300);
   };
 
   // 体重の追加・更新
@@ -216,6 +294,7 @@ export function App() {
         updated = [...prev, newRecord];
       }
       saveWeightRecords(updated);
+      setTimeout(() => pushToSheets(), 300);
       return updated;
     });
   };
@@ -225,6 +304,7 @@ export function App() {
     setWeightRecords((prev) => {
       const updated = prev.filter((r) => r.id !== id);
       saveWeightRecords(updated);
+      setTimeout(() => pushToSheets(), 300);
       return updated;
     });
   };
@@ -258,6 +338,9 @@ export function App() {
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         onOpenWeightModal={() => setIsWeightModalOpen(true)}
         onOpenHistoryModal={() => setIsHistoryModalOpen(true)}
+        spreadsheetUrl={settings.spreadsheetUrl}
+        isSyncing={isSyncing}
+        onTriggerSync={triggerManualSync}
       />
 
       {/* メインコンテンツ */}

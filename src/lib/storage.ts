@@ -16,12 +16,16 @@ export const DEFAULT_TARGET_PFC: TargetPFC = {
   purpose: 'maintain'
 };
 
+export const USER_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1XXF5LhxIpGHB3r4lKt3nwInIMsw4jPsQx_I054TZeqk/edit?usp=sharing';
+
 export const DEFAULT_SETTINGS: AppSettings = {
   profile: {
     heightCm: 170,
     age: 30,
     gender: 'male',
   },
+  spreadsheetUrl: USER_SPREADSHEET_URL,
+  gasSyncUrl: '',
   targetPFC: DEFAULT_TARGET_PFC,
   staplePresets: DEFAULT_STAPLE_PRESETS,
   customPresets: []
@@ -35,6 +39,7 @@ export function loadSettings(): AppSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      spreadsheetUrl: parsed.spreadsheetUrl || USER_SPREADSHEET_URL,
       profile: { ...DEFAULT_SETTINGS.profile, ...(parsed.profile || {}) },
       targetPFC: { ...DEFAULT_TARGET_PFC, ...(parsed.targetPFC || {}) },
       staplePresets: parsed.staplePresets || DEFAULT_STAPLE_PRESETS,
@@ -304,3 +309,29 @@ export function importAllData(jsonString: string): boolean {
     return false;
   }
 }
+
+// スプレッドシート(GAS)連携用の同期データ取得・適用
+export function getFullSyncData() {
+  return {
+    settings: loadSettings(),
+    meals: loadMeals(),
+    favorites: loadFavorites(),
+    weights: loadWeightRecords(),
+    exportedAt: new Date().toISOString()
+  };
+}
+
+export function applyFullSyncData(data: any): boolean {
+  try {
+    if (!data) return false;
+    if (data.settings) saveSettings(data.settings);
+    if (data.meals && Array.isArray(data.meals)) saveMeals(data.meals);
+    if (data.favorites && Array.isArray(data.favorites)) saveFavorites(data.favorites);
+    if (data.weights && Array.isArray(data.weights)) saveWeightRecords(data.weights);
+    return true;
+  } catch (e) {
+    console.error('Failed to apply full sync data', e);
+    return false;
+  }
+}
+

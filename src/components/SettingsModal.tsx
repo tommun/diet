@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { AppSettings } from '../types';
-import { exportAllData, importAllData, appendMeals } from '../lib/storage';
-import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy } from 'lucide-react';
+import { exportAllData, importAllData, appendMeals, USER_SPREADSHEET_URL, getFullSyncData } from '../lib/storage';
+import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { getMealHistoryByDate } from '../lib/storage';
+import { GAS_TEMPLATE_CODE, syncSaveToSheets } from '../lib/sheetsSync';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -20,7 +21,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onDataReload,
 }) => {
   const [apiKey, setApiKey] = useState(settings.geminiApiKey || '');
+  const [gasSyncUrl, setGasSyncUrl] = useState(settings.gasSyncUrl || '');
   const [isSaved, setIsSaved] = useState(false);
+  const [isSavedGas, setIsSavedGas] = useState(false);
+  const [isCopiedGas, setIsCopiedGas] = useState(false);
+  const [isTestingSync, setIsTestingSync] = useState(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -33,6 +39,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
+  };
+
+  const handleSaveGas = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSaveSettings({
+      ...settings,
+      gasSyncUrl: gasSyncUrl.trim(),
+      spreadsheetUrl: settings.spreadsheetUrl || USER_SPREADSHEET_URL,
+    });
+    setIsSavedGas(true);
+    setTimeout(() => setIsSavedGas(false), 2000);
+  };
+
+  const handleCopyGasCode = () => {
+    navigator.clipboard.writeText(GAS_TEMPLATE_CODE).then(() => {
+      setIsCopiedGas(true);
+      setTimeout(() => setIsCopiedGas(false), 2500);
+    });
+  };
+
+  const handleTestSync = async () => {
+    if (!gasSyncUrl.trim()) {
+      alert('先にGoogle Apps ScriptのウェブアプリURLを入力してください。');
+      return;
+    }
+    setIsTestingSync(true);
+    setSyncStatusMsg('スプレッドシートと通信中...');
+    try {
+      const fullData = getFullSyncData();
+      const ok = await syncSaveToSheets(gasSyncUrl.trim(), fullData);
+      if (ok) {
+        setSyncStatusMsg('✅ スプレッドシートへの保存・同期に成功しました！');
+        onSaveSettings({
+          ...settings,
+          gasSyncUrl: gasSyncUrl.trim(),
+          lastSyncedAt: new Date().toISOString(),
+        });
+      } else {
+        setSyncStatusMsg('❌ スプレッドシートからの応答が不正です。');
+      }
+    } catch (e: any) {
+      console.error(e);
+      setSyncStatusMsg(`❌ 同期失敗: ${e.message || 'CORSまたは権限設定をご確認ください'}`);
+    } finally {
+      setIsTestingSync(false);
+    }
   };
 
   const handleExport = () => {
@@ -170,6 +222,104 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+
+          <hr className="border-slate-100" />
+
+          {/* Google スプレッドシート同期設定 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-slate-800 text-sm">
+                <FileSpreadsheet size={16} className="text-emerald-600" />
+                <span>Google スプレッドシート同期 (クラウド保存)</span>
+              </div>
+              <a
+                href={settings.spreadsheetUrl || USER_SPREADSHEET_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-colors"
+              >
+                <span>スプシを開く</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Googleスプレッドシートと連携すると、PC・スマホ・Safariなど<strong>どのブラウザから開いてもデータが自動同期</strong>され、消えなくなります！
+            </p>
+
+            <form onSubmit={handleSaveGas} className="space-y-2">
+              <label className="block text-[11px] font-bold text-slate-700">
+                Google Apps Script (GAS) ウェブアプリ URL
+              </label>
+              <input
+                type="text"
+                value={gasSyncUrl}
+                onChange={(e) => setGasSyncUrl(e.target.value)}
+                placeholder="https://script.google.com/macros/s/.../exec"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-mono text-slate-800"
+              />
+
+              <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleTestSync}
+                  disabled={isTestingSync || !gasSyncUrl.trim()}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1"
+                >
+                  <RefreshCw size={13} className={isTestingSync ? 'animate-spin' : ''} />
+                  <span>{isTestingSync ? '同期中...' : '今すぐ同期テスト'}</span>
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-2xs transition-all flex items-center gap-1"
+                >
+                  {isSavedGas ? <Check size={14} /> : null}
+                  <span>{isSavedGas ? 'URL保存完了' : '同期URLを保存'}</span>
+                </button>
+              </div>
+
+              {syncStatusMsg && (
+                <div className={`p-2 rounded-lg text-xs font-semibold ${
+                  syncStatusMsg.startsWith('✅') ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'
+                }`}>
+                  {syncStatusMsg}
+                </div>
+              )}
+            </form>
+
+            {/* GAS設定手順の案内 */}
+            <details className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <summary className="font-bold text-slate-700 cursor-pointer select-none flex items-center justify-between">
+                <span>📖 スプレッドシート連携コードと設定手順</span>
+                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded-sm">簡単3ステップ</span>
+              </summary>
+              <div className="mt-2.5 space-y-2 text-[11px] text-slate-600 leading-relaxed">
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>
+                    スプレッドシートのメニューから <strong>「拡張機能」&gt;「Apps Script」</strong> を開きます。
+                  </li>
+                  <li>
+                    下のボタンからコードをコピーし、エディタの内容を全消去して貼り付けて保存（Ctrl+S）します。
+                  </li>
+                  <li>
+                    右上の <strong>「デプロイ」&gt;「新しいデプロイ」</strong> を押し、種類で <strong>「ウェブアプリ」</strong> を選択。アクセスできるユーザーを <strong>「全員」</strong> にして「デプロイ」をクリックし、表示されたURLを上の入力欄に貼り付けます。
+                  </li>
+                </ol>
+
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCopyGasCode}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs shadow-2xs"
+                  >
+                    {isCopiedGas ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{isCopiedGas ? 'GASコードをコピーしました！' : '連携用GASコードをコピー'}</span>
+                  </button>
+                </div>
+              </div>
+            </details>
           </div>
 
           <hr className="border-slate-100" />

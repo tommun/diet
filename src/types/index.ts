@@ -101,8 +101,12 @@ export interface StaplePreset {
 
 export interface AppSettings {
   geminiApiKey?: string;
+  spreadsheetUrl?: string;
+  gasSyncUrl?: string;
+  lastSyncedAt?: string;
   profile?: UserProfile;
   targetPFC: TargetPFC;
   staplePresets: StaplePreset[];
   customPresets: Omit<FoodItem, 'id' | 'createdAt'>[]; // よく食べる食品
 }
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Settings, Target, UtensilsCrossed, Scale, History } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Settings, Target, UtensilsCrossed, Scale, History, FileSpreadsheet, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   currentDate: string;
@@ -9,6 +9,9 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenWeightModal: () => void;
   onOpenHistoryModal: () => void;
+  spreadsheetUrl?: string;
+  isSyncing?: boolean;
+  onTriggerSync?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +22,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenWeightModal,
   onOpenHistoryModal,
+  spreadsheetUrl,
+  isSyncing,
+  onTriggerSync,
 }) => {
   // 日付の前日・翌日移動
   const handleShiftDate = (days: number) => {
@@ -137,6 +143,36 @@ export const Header: React.FC<HeaderProps> = ({
             <UtensilsCrossed size={18} />
             <span className="hidden md:inline">主食基準</span>
           </button>
+
+          {/* スプレッドシート直リンク */}
+          {spreadsheetUrl && (
+            <a
+              href={spreadsheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+              title="連携Googleスプレッドシートを開く"
+            >
+              <FileSpreadsheet size={18} className="text-emerald-600" />
+              <span className="hidden lg:inline">スプシ</span>
+            </a>
+          )}
+
+          {/* 手動同期ボタン */}
+          {onTriggerSync && (
+            <button
+              onClick={onTriggerSync}
+              disabled={isSyncing}
+              className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
+                isSyncing
+                  ? 'text-orange-500 bg-orange-50 cursor-wait'
+                  : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50'
+              }`}
+              title="スプレッドシートと今すぐ同期"
+            >
+              <RefreshCw size={17} className={isSyncing ? 'animate-spin' : ''} />
+            </button>
+          )}
 
           <button
             onClick={onOpenSettings}
