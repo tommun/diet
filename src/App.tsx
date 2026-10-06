@@ -9,6 +9,7 @@ import {
   saveFavorites,
   loadWeightRecords,
   saveWeightRecords,
+  appendMeals,
   getTodayString,
   DEFAULT_SETTINGS
 } from './lib/storage';
@@ -37,8 +38,38 @@ export function App() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
 
-  // 初回データロード
+  // 初回データロード & URLパラメータによる食事データ自動取り込み
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const importParam = params.get('import_meals');
+      if (importParam) {
+        let jsonStr = '';
+        try {
+          jsonStr = decodeURIComponent(importParam);
+          if (!jsonStr.trim().startsWith('[') && !jsonStr.trim().startsWith('{')) {
+            jsonStr = decodeURIComponent(escape(atob(importParam)));
+          }
+        } catch {
+          try {
+            jsonStr = atob(importParam);
+          } catch {
+            jsonStr = importParam;
+          }
+        }
+
+        const data = JSON.parse(jsonStr);
+        const mealsToAdd = Array.isArray(data) ? data : data.meals ? data.meals : [data];
+        if (Array.isArray(mealsToAdd) && mealsToAdd.length > 0) {
+          appendMeals(mealsToAdd);
+          alert('本日の食事記録（朝・昼・夜）を正常に追加・保存しました！');
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to import meals from URL parameter', e);
+    }
     reloadAllData();
   }, []);
 

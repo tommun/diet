@@ -72,6 +72,32 @@ export function saveMeals(meals: MealRecord[]): void {
   }
 }
 
+// 既存の食事データに新しい食事を追加（マージ）
+export function appendMeals(newMeals: MealRecord[]): void {
+  try {
+    const current = loadMeals();
+    const updated = [...current];
+    newMeals.forEach((newMeal) => {
+      const existingIndex = updated.findIndex(
+        (m) => m.date === newMeal.date && m.mealType === newMeal.mealType
+      );
+      if (existingIndex >= 0) {
+        const existing = updated[existingIndex];
+        updated[existingIndex] = {
+          ...existing,
+          items: [...existing.items, ...newMeal.items],
+        };
+      } else {
+        updated.push(newMeal);
+      }
+    });
+    saveMeals(updated);
+  } catch (e) {
+    console.error('Failed to append meals', e);
+  }
+}
+
+
 export function loadFavorites(): Omit<FoodItem, 'id' | 'createdAt'>[] {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);

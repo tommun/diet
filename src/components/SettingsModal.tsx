@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { AppSettings } from '../types';
-import { exportAllData, importAllData } from '../lib/storage';
+import { exportAllData, importAllData, appendMeals } from '../lib/storage';
 import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -159,6 +159,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="hidden"
                 onChange={handleImport}
               />
+            </div>
+
+            {/* テキスト貼り付けで追加/復元 */}
+            <div className="pt-2">
+              <details className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <summary className="font-bold text-slate-700 cursor-pointer select-none">
+                  📋 JSONテキストを直接貼り付けて追加・復元
+                </summary>
+                <div className="mt-2.5 space-y-2">
+                  <p className="text-[11px] text-slate-500">
+                    チャットやバックアップからコピーしたJSONテキストを貼り付けて、食事記録を追加できます。
+                  </p>
+                  <textarea
+                    id="paste-import-json"
+                    rows={3}
+                    placeholder='[{"date":"2026-10-06", "mealType":"lunch", ...}]'
+                    className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-orange-500"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const el = document.getElementById('paste-import-json') as HTMLTextAreaElement;
+                        const val = el?.value?.trim();
+                        if (!val) return;
+                        try {
+                          const parsed = JSON.parse(val);
+                          if (Array.isArray(parsed)) {
+                            appendMeals(parsed);
+                            alert('食事記録を追加しました！');
+                            onDataReload();
+                            onClose();
+                          } else if (parsed.meals || parsed.settings) {
+                            if (importAllData(val)) {
+                              alert('データを復元しました！');
+                              onDataReload();
+                              onClose();
+                            }
+                          } else {
+                            alert('有効な食事データまたはバックアップデータではありません。');
+                          }
+                        } catch {
+                          alert('JSONの解析に失敗しました。形式をご確認ください。');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg transition-colors"
+                    >
+                      データを反映する
+                    </button>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
 
