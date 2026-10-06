@@ -181,7 +181,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-800">設定・データ管理</h2>
@@ -247,7 +247,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>Google スプレッドシート同期 (クラウド保存)</span>
               </div>
               <a
-                href={settings.spreadsheetUrl || USER_SPREADSHEET_URL}
+                href={safeSettings.spreadsheetUrl || USER_SPREADSHEET_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg font-bold flex items-center gap-1 transition-colors"

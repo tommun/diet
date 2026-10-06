@@ -353,6 +353,8 @@ export function App() {
           todayWeightRecord={todayWeightRecord}
           onOpenTargetSettings={() => setIsTargetModalOpen(true)}
           onOpenWeightModal={() => setIsWeightModalOpen(true)}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
+          isSheetsConfigured={Boolean(settings.gasSyncUrl && settings.gasSyncUrl.trim())}
         />
 
         {/* 食事一覧（朝・昼・夕・間食） */}
@@ -416,7 +418,10 @@ export function App() {
         onSavePresets={handleSaveStaples}
       />
 
-      <ErrorBoundary fallbackTitle="設定画面の表示中にエラーが発生しました">
+      <ErrorBoundary
+        key={isSettingsModalOpen ? 'settings-open' : 'settings-closed'}
+        fallbackTitle="設定画面の表示中にエラーが発生しました"
+      >
         <SettingsModal
           isOpen={isSettingsModalOpen}
           onClose={() => setIsSettingsModalOpen(false)}

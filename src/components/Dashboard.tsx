@@ -1,6 +1,6 @@
 import React from 'react';
 import { TargetPFC, FoodItem, WeightRecord } from '../types';
-import { Flame, Beef, Droplet, Wheat, Scale } from 'lucide-react';
+import { Flame, Beef, Droplet, Wheat, Scale, Settings, Cloud, CheckCircle2 } from 'lucide-react';
 
 interface DashboardProps {
   target: TargetPFC;
@@ -8,6 +8,8 @@ interface DashboardProps {
   todayWeightRecord?: WeightRecord;
   onOpenTargetSettings: () => void;
   onOpenWeightModal: () => void;
+  onOpenSettings?: () => void;
+  isSheetsConfigured?: boolean;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -16,6 +18,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   todayWeightRecord,
   onOpenTargetSettings,
   onOpenWeightModal,
+  onOpenSettings,
+  isSheetsConfigured,
 }) => {
   // 合計摂取量を計算
   const totals = items.reduce(
@@ -228,12 +232,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
         <button
+          type="button"
           onClick={onOpenTargetSettings}
-          className="text-orange-600 hover:text-orange-700 hover:underline font-semibold text-xs transition-colors"
+          className="text-orange-600 hover:text-orange-700 hover:underline font-semibold text-xs transition-colors cursor-pointer"
         >
           目標を変更
         </button>
       </div>
+
+      {/* スプレッドシート同期・設定クイックアクセスバー */}
+      {onOpenSettings && (
+        <div className="mt-3 pt-2.5 border-t border-dashed border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            {isSheetsConfigured ? (
+              <>
+                <CheckCircle2 size={13} className="text-emerald-500" />
+                <span className="text-emerald-700 font-semibold">スプレッドシート自動同期中</span>
+              </>
+            ) : (
+              <>
+                <Cloud size={13} className="text-amber-500" />
+                <span>ブラウザ間同期・自動バックアップ</span>
+              </>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-orange-600 hover:bg-slate-100 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+          >
+            <Settings size={13} />
+            <span>設定・スプシ連携を開く</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

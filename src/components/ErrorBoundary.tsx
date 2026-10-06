@@ -30,26 +30,42 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
+  public handleClose = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-[200px] p-6 m-4 bg-red-50 border border-red-200 rounded-3xl text-center space-y-3">
-          <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto">
-            <AlertTriangle size={24} />
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl border border-red-200 p-6 max-w-md w-full text-center space-y-4 animate-in fade-in">
+            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto">
+              <AlertTriangle size={28} />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">
+              {this.props.fallbackTitle || '画面の表示中にエラーが発生しました'}
+            </h3>
+            <p className="text-xs text-red-600 font-mono bg-red-50 p-3 rounded-xl border border-red-100 max-w-md mx-auto break-all text-left">
+              {this.state.error?.message || '不明なエラー'}
+            </p>
+            <div className="flex gap-2 justify-center pt-2">
+              <button
+                type="button"
+                onClick={this.handleClose}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                閉じる
+              </button>
+              <button
+                type="button"
+                onClick={this.handleReset}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw size={14} />
+                <span>再読み込み</span>
+              </button>
+            </div>
           </div>
-          <h3 className="text-base font-bold text-red-800">
-            {this.props.fallbackTitle || '画面の表示中にエラーが発生しました'}
-          </h3>
-          <p className="text-xs text-red-600 font-mono bg-white p-2 rounded-xl border border-red-100 max-w-md mx-auto break-all">
-            {this.state.error?.message || '不明なエラー'}
-          </p>
-          <button
-            onClick={this.handleReset}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs inline-flex items-center gap-1.5"
-          >
-            <RefreshCw size={14} />
-            <span>アプリを再読み込み</span>
-          </button>
         </div>
       );
     }

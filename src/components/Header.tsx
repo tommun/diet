@@ -107,10 +107,11 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* 設定・ツールボタン */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button
+            type="button"
             onClick={onOpenHistoryModal}
-            className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
             title="過去の食事履歴一覧（日別PFC）"
           >
             <History size={18} />
@@ -118,8 +119,9 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={onOpenWeightModal}
-            className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
             title="体重推移・グラフ管理"
           >
             <Scale size={18} />
@@ -127,8 +129,9 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={onOpenTargetSettings}
-            className="p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            className="hidden sm:flex p-2 text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
             title="目標PFC設定"
           >
             <Target size={18} />
@@ -136,12 +139,13 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={onOpenStaplesConfig}
-            className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+            className="hidden md:flex p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
             title="主食の基準値カスタマイズ"
           >
             <UtensilsCrossed size={18} />
-            <span className="hidden md:inline">主食基準</span>
+            <span className="hidden lg:inline">主食基準</span>
           </button>
 
           {/* スプレッドシート直リンク */}
@@ -150,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({
               href={spreadsheetUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold"
+              className="hidden sm:flex p-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
               title="連携Googleスプレッドシートを開く"
             >
               <FileSpreadsheet size={18} className="text-emerald-600" />
@@ -161,9 +165,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* 手動同期ボタン */}
           {onTriggerSync && (
             <button
+              type="button"
               onClick={onTriggerSync}
               disabled={isSyncing}
-              className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold ${
+              className={`p-2 rounded-lg transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0 ${
                 isSyncing
                   ? 'text-orange-500 bg-orange-50 cursor-wait'
                   : 'text-slate-600 hover:text-orange-600 hover:bg-orange-50'
@@ -174,12 +179,15 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
+          {/* 設定ボタン（目立つボタンスタイル） */}
           <button
+            type="button"
             onClick={onOpenSettings}
-            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-            title="設定 / バックアップ / APIキー"
+            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 hover:text-slate-900 rounded-xl transition-all flex items-center gap-1 text-xs font-bold cursor-pointer shrink-0 border border-slate-200/80 shadow-2xs ml-0.5"
+            title="設定 / スプレッドシート連携 / バックアップ"
           >
-            <Settings size={18} />
+            <Settings size={16} className="text-slate-600" />
+            <span className="text-xs">設定</span>
           </button>
         </div>
       </div>
