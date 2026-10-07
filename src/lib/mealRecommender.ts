@@ -290,11 +290,12 @@ function createPlan(
 }
 
 /**
- * Gemini APIを活用したパーソナライズ夕食提案
+ * Gemini APIを活用したユーザーリクエスト対応型・夕食提案
  */
 export async function generateAiDinnerRecommendation(
   apiKey: string,
-  context: RecommendationContext
+  context: RecommendationContext,
+  userRequest?: string
 ): Promise<RecommendedMealPlan | null> {
   if (!apiKey || !apiKey.trim()) return null;
 
@@ -321,7 +322,11 @@ export async function generateAiDinnerRecommendation(
 
     const prompt = `
 あなたはプロのスポーツ栄養士・PFC管理コーチです。
-ユーザーが本日食べた朝食・昼食の内容と、目標達成までの残りPFC枠に基づいて、最適な【夕食メニューの組み合わせ（1セット）】を提案してください。
+ユーザーが本日食べた朝食・昼食の実績と、目標達成までの残りPFC枠、そして【ユーザーからの要望・リクエスト】に基づいて、今夜食べるべき最高の夕食メニューセット（1食分）を作成してください。
+
+【ユーザーからの要望・リクエスト】
+★「${userRequest && userRequest.trim() ? userRequest.trim() : '特になし（PFC最適化を最優先におまかせ）'}」★
+※上記のユーザーリクエスト（例: 食材の指定、コンビニ指定、さっぱり系、時短、自炊など）を最優先で反映してください。
 
 【本日の目標PFC】
 - カロリー: ${target.calories} kcal
@@ -335,20 +340,20 @@ ${bNames || '未記録'}
 【昼食の実績】
 ${lNames || '未記録'}
 
-【現在の残りPFC枠（夜に摂るべき目安）】
+【現在の残りPFC枠（今夜摂るべき目安）】
 - カロリー: あと約 ${remainingCal} kcal
 - タンパク質 (P): あと約 ${remainingP} g
-- 脂質 (F): あと約 ${remainingF} g (※マイナスの場合は超過しているので極力0g近くに抑える)
+- 脂質 (F): あと約 ${remainingF} g ${remainingF <= 0 ? '(※超過中！極力0g〜極少に抑えてください)' : ''}
 - 炭水化物 (C): あと約 ${remainingC} g
 
 【出力形式】
-必ず以下のJSONフォーマットのみを出力してください（Markdownコードブロック含む/含まない問わず有効なJSON）：
+必ず以下の有効なJSON形式のみを出力してください：
 {
-  "title": "メニュー全体のキャッチコピー（例: 脂質ゼロで攻める！鶏ササミと和風温野菜セット）",
-  "description": "なぜこの夕食が今日の朝昼の補填としてベストなのかの栄養士コメント（1〜2文）",
+  "title": "メニューの魅力的なタイトル（例: 【コンビニ】サラダチキンとおにぎりの高タンパクセット）",
+  "description": "ユーザーの要望とPFCバランスをどう両立したかの解説コメント（1〜2文）",
   "items": [
     {
-      "name": "料理名または食材名",
+      "name": "料理名・食材名（具体的に）",
       "weightGrams": グラム数（数値）,
       "calories": カロリー（kcal、数値）,
       "protein": タンパク質（g、数値）,
@@ -359,7 +364,8 @@ ${lNames || '未記録'}
 }
 `;
 
-    const res = await fetch(
+    // gemini-2.5-flash または gemini-1.5-flash
+    let res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`,
       {
         method: 'POST',
@@ -367,7 +373,7 @@ ${lNames || '未記録'}
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.4,
+            temperature: 0.5,
             responseMimeType: 'application/json',
           },
         }),
@@ -375,12 +381,33 @@ ${lNames || '未記録'}
     );
 
     if (!res.ok) {
+      // フォールバック
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.5,
+              responseMimeType: 'application/json',
+            },
+          }),
+        }
+      );
+    }
+
+    if (!res.ok) {
       throw new Error(`Gemini API Error: ${res.status}`);
     }
 
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) return null;
+
+    // マークダウンコードブロックのクリーンアップ
+    text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     const parsed = JSON.parse(text);
     if (!parsed.items || !Array.isArray(parsed.items)) return null;
@@ -390,7 +417,7 @@ ${lNames || '未記録'}
       '✨ ' + (parsed.title || 'AIカスタム夕食プラン'),
       'ai',
       'AIシェフ特製',
-      parsed.description || '朝昼の食事内容を考慮してAIが専用設計した夕食プランです。',
+      parsed.description || '朝昼の食事内容とリクエストに合わせてAIが専用設計した夕食プランです。',
       parsed.items
     );
   } catch (e) {

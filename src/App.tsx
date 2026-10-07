@@ -444,6 +444,8 @@ export function App() {
           dinnerItems={dinnerItems}
           apiKey={settings.geminiApiKey}
           onAddRecommendedMeal={handleAddRecommendedMeal}
+          onSaveApiKey={(key) => handleSaveSettings({ ...settings, geminiApiKey: key })}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
 
         {/* 食事一覧（朝・昼・夕・間食） */}
