@@ -399,18 +399,35 @@ ${lNames || '未記録'}
     }
 
     if (!res.ok) {
-      throw new Error(`Gemini API Error: ${res.status}`);
+      let errMsg = `HTTP ${res.status}`;
+      try {
+        const errJson = await res.json();
+        if (errJson.error && errJson.error.message) {
+          errMsg = errJson.error.message;
+        }
+      } catch {}
+      throw new Error(`Gemini APIエラー: ${errMsg}`);
     }
 
     const data = await res.json();
     let text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return null;
+    if (!text) {
+      throw new Error('Gemini APIから回答テキストが得られませんでした。');
+    }
 
     // マークダウンコードブロックのクリーンアップ
     text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-    const parsed = JSON.parse(text);
-    if (!parsed.items || !Array.isArray(parsed.items)) return null;
+    let parsed: any;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      throw new Error('AIの回答をJSONとして解析できませんでした。もう一度お試しください。');
+    }
+
+    if (!parsed.items || !Array.isArray(parsed.items)) {
+      throw new Error('AIの回答にメニュー品目が含まれていませんでした。');
+    }
 
     return createPlan(
       'plan_ai_' + Date.now(),
@@ -420,8 +437,8 @@ ${lNames || '未記録'}
       parsed.description || '朝昼の食事内容とリクエストに合わせてAIが専用設計した夕食プランです。',
       parsed.items
     );
-  } catch (e) {
+  } catch (e: any) {
     console.error('Failed to generate AI dinner recommendation', e);
-    return null;
+    throw e;
   }
 }

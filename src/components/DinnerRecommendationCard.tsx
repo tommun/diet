@@ -113,12 +113,10 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
       if (plan) {
         setAiPlan(plan);
         setSelectedPlanId(plan.id);
-      } else {
-        alert('AIによる夕食メニューの生成に失敗しました。Gemini APIキーの有効性をご確認ください。');
       }
     } catch (e: any) {
       console.error(e);
-      alert('AIメニューの生成中にエラーが発生しました。');
+      alert(`AI夕食メニューの生成に失敗しました:\n${e.message || 'APIキーまたは通信状況をご確認ください'}`);
     } finally {
       setIsLoadingAi(false);
     }
