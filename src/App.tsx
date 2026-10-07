@@ -25,6 +25,8 @@ import { StaplesConfigModal } from './components/StaplesConfigModal';
 import { SettingsModal } from './components/SettingsModal';
 import { WeightModal } from './components/Weight/WeightModal';
 import { MealHistoryModal } from './components/MealHistoryModal';
+import { DinnerRecommendationCard } from './components/DinnerRecommendationCard';
+import { RecommendedItem } from './lib/mealRecommender';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Plus } from 'lucide-react';
 
@@ -191,6 +193,18 @@ export function App() {
     return currentDayMeals.flatMap((m) => m.items);
   }, [currentDayMeals]);
 
+  const breakfastItems = useMemo(() => {
+    return currentDayMeals.find((m) => m.mealType === 'breakfast')?.items || [];
+  }, [currentDayMeals]);
+
+  const lunchItems = useMemo(() => {
+    return currentDayMeals.find((m) => m.mealType === 'lunch')?.items || [];
+  }, [currentDayMeals]);
+
+  const dinnerItems = useMemo(() => {
+    return currentDayMeals.find((m) => m.mealType === 'dinner')?.items || [];
+  }, [currentDayMeals]);
+
   // itemId -> MealType の対応マップ
   const mealTypeMapping = useMemo(() => {
     const map: Record<string, MealType> = {};
@@ -201,6 +215,47 @@ export function App() {
     });
     return map;
   }, [currentDayMeals]);
+
+  // レコメンド夕食の一括追加
+  const handleAddRecommendedMeal = (recommendedItems: RecommendedItem[]) => {
+    const newItems: FoodItem[] = recommendedItems.map((item, idx) => ({
+      id: 'food_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 6),
+      name: item.name,
+      weightGrams: item.weightGrams,
+      calories: item.calories,
+      protein: item.protein,
+      fat: item.fat,
+      carbs: item.carbs,
+      createdAt: new Date().toISOString(),
+    }));
+
+    setMeals((prevMeals) => {
+      const targetMealIndex = prevMeals.findIndex(
+        (m) => m.date === currentDate && m.mealType === 'dinner'
+      );
+
+      let updated: MealRecord[];
+      if (targetMealIndex >= 0) {
+        updated = [...prevMeals];
+        updated[targetMealIndex] = {
+          ...updated[targetMealIndex],
+          items: [...updated[targetMealIndex].items, ...newItems],
+        };
+      } else {
+        const newMeal: MealRecord = {
+          id: 'meal_' + Date.now(),
+          date: currentDate,
+          mealType: 'dinner',
+          items: newItems,
+        };
+        updated = [...prevMeals, newMeal];
+      }
+
+      saveMeals(updated);
+      setTimeout(() => pushToSheets(), 300);
+      return updated;
+    });
+  };
 
   // 食品の追加
   const handleAddFood = (type: MealType, itemInput: Omit<FoodItem, 'id' | 'createdAt'>) => {
@@ -378,6 +433,17 @@ export function App() {
           onOpenWeightModal={() => setIsWeightModalOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           isSheetsConfigured={Boolean(settings.gasSyncUrl && settings.gasSyncUrl.trim())}
+        />
+
+        {/* 今夜のおすすめ夕食提案カード（朝・昼が記録されている場合に表示） */}
+        <DinnerRecommendationCard
+          target={settings.targetPFC}
+          currentItems={currentDayItems}
+          breakfastItems={breakfastItems}
+          lunchItems={lunchItems}
+          dinnerItems={dinnerItems}
+          apiKey={settings.geminiApiKey}
+          onAddRecommendedMeal={handleAddRecommendedMeal}
         />
 
         {/* 食事一覧（朝・昼・夕・間食） */}
