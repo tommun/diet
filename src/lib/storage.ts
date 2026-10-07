@@ -17,6 +17,7 @@ export const DEFAULT_TARGET_PFC: TargetPFC = {
 };
 
 export const USER_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1XXF5LhxIpGHB3r4lKt3nwInIMsw4jPsQx_I054TZeqk/edit?usp=sharing';
+export const USER_GAS_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyx5IjE-8bK3PLnzA_nKwQC2OXumD_tNGKwZqvNPmZSkp8jEOJKJJFdqFckFJTS2b7rZQ/exec';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   profile: {
@@ -25,7 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     gender: 'male',
   },
   spreadsheetUrl: USER_SPREADSHEET_URL,
-  gasSyncUrl: '',
+  gasSyncUrl: USER_GAS_SYNC_URL,
   targetPFC: DEFAULT_TARGET_PFC,
   staplePresets: DEFAULT_STAPLE_PRESETS,
   customPresets: []
@@ -40,6 +41,7 @@ export function loadSettings(): AppSettings {
       ...DEFAULT_SETTINGS,
       ...parsed,
       spreadsheetUrl: parsed.spreadsheetUrl || USER_SPREADSHEET_URL,
+      gasSyncUrl: parsed.gasSyncUrl || USER_GAS_SYNC_URL,
       profile: { ...DEFAULT_SETTINGS.profile, ...(parsed.profile || {}) },
       targetPFC: { ...DEFAULT_TARGET_PFC, ...(parsed.targetPFC || {}) },
       staplePresets: parsed.staplePresets || DEFAULT_STAPLE_PRESETS,
