@@ -3,6 +3,7 @@ import { TargetPFC, FoodItem } from '../types';
 import {
   generateDinnerRecommendations,
   generateAiDinnerRecommendation,
+  generateCustomDinnerRecommendation,
   RecommendedMealPlan,
   RecommendedItem,
 } from '../lib/mealRecommender';
@@ -86,40 +87,54 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
 
   const activePlan = allPlans.find((p) => p.id === selectedPlanId) || allPlans[0];
 
-  // AI提案の呼び出し
-  const handleAskAi = async (customRequest?: string) => {
-    const activeKey = apiKey || inlineKey.trim();
-    if (!activeKey) {
-      setShowKeyInput(true);
-      return;
-    }
-
+  // メニューの生成（APIキー不要のスマートエンジン＋AIのハイブリッド）
+  const handleGenerateMenu = async (customRequest?: string) => {
     const requestText = customRequest !== undefined ? customRequest : userPrompt;
-    setIsLoadingAi(true);
+    const activeKey = apiKey || inlineKey.trim();
 
-    try {
-      const plan = await generateAiDinnerRecommendation(
-        activeKey,
-        {
-          target,
-          currentItems,
-          breakfastItems,
-          lunchItems,
-          dinnerItems,
-        },
-        requestText
-      );
+    // APIキーがある場合はGeminiを優先試行（失敗時は自動でスマートエンジンにフォールバック）
+    if (activeKey) {
+      setIsLoadingAi(true);
+      try {
+        const plan = await generateAiDinnerRecommendation(
+          activeKey,
+          {
+            target,
+            currentItems,
+            breakfastItems,
+            lunchItems,
+            dinnerItems,
+          },
+          requestText
+        );
 
-      if (plan) {
-        setAiPlan(plan);
-        setSelectedPlanId(plan.id);
+        if (plan) {
+          setAiPlan(plan);
+          setSelectedPlanId(plan.id);
+          setIsLoadingAi(false);
+          return;
+        }
+      } catch (e: any) {
+        console.warn('Gemini API call failed, gracefully falling back to smart rule engine:', e);
+      } finally {
+        setIsLoadingAi(false);
       }
-    } catch (e: any) {
-      console.error(e);
-      alert(`AI夕食メニューの生成に失敗しました:\n${e.message || 'APIキーまたは通信状況をご確認ください'}`);
-    } finally {
-      setIsLoadingAi(false);
     }
+
+    // ★APIキー不要！自然言語リクエストと残りPFCから即座に最適なメニューを生成
+    const customPlan = generateCustomDinnerRecommendation(
+      {
+        target,
+        currentItems,
+        breakfastItems,
+        lunchItems,
+        dinnerItems,
+      },
+      requestText
+    );
+
+    setAiPlan(customPlan);
+    setSelectedPlanId(customPlan.id);
   };
 
   const handleSaveInlineKey = (e: React.FormEvent) => {
@@ -129,7 +144,7 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
       onSaveApiKey(inlineKey.trim());
     }
     setShowKeyInput(false);
-    handleAskAi();
+    handleGenerateMenu();
   };
 
   const handleApplyMeal = (plan: RecommendedMealPlan) => {
@@ -265,7 +280,7 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleAskAi();
+                handleGenerateMenu();
               }}
               className="flex gap-2"
             >
@@ -274,7 +289,7 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
                   type="text"
                   value={userPrompt}
                   onChange={(e) => setUserPrompt(e.target.value)}
-                  placeholder="例: コンビニで済ませたい / 鶏むね肉がある / さっぱり麺類 / ガッツリ"
+                  placeholder="例: コンビニで済ませたい / 鶏むね肉がある / さっぱり麺類 / ガッツリ / おつまみ"
                   className="w-full pl-3 pr-8 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 text-slate-800 font-medium"
                 />
                 {userPrompt && (
@@ -310,7 +325,7 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
                   type="button"
                   onClick={() => {
                     setUserPrompt(promptText);
-                    handleAskAi(promptText);
+                    handleGenerateMenu(promptText);
                   }}
                   className="text-[11px] font-medium bg-slate-100 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-200 border border-slate-200/60 px-2 py-0.8 rounded-lg text-slate-600 transition-colors cursor-pointer"
                 >
@@ -409,12 +424,12 @@ export const DinnerRecommendationCard: React.FC<DinnerRecommendationCardProps> =
                 {activePlan.tag === 'ai' ? (
                   <button
                     type="button"
-                    onClick={() => handleAskAi()}
+                    onClick={() => handleGenerateMenu()}
                     disabled={isLoadingAi}
                     className="text-xs text-purple-700 hover:text-purple-800 font-bold flex items-center gap-1 hover:underline cursor-pointer"
                   >
                     <RotateCcw size={13} />
-                    <span>別のAIメニューを再生成</span>
+                    <span>別のメニューを再生成</span>
                   </button>
                 ) : (
                   <span />

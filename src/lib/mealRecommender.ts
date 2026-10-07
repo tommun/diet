@@ -290,6 +290,330 @@ function createPlan(
 }
 
 /**
+ * APIキー不要！ユーザーの自由リクエストと残りPFCから即座に最適なメニューを作り直すエンジン
+ */
+export function generateCustomDinnerRecommendation(
+  context: RecommendationContext,
+  userRequest: string
+): RecommendedMealPlan {
+  const { target, currentItems } = context;
+
+  const currentTotals = currentItems.reduce(
+    (acc, item) => ({
+      calories: acc.calories + (item.calories || 0),
+      protein: acc.protein + (item.protein || 0),
+      fat: acc.fat + (item.fat || 0),
+      carbs: acc.carbs + (item.carbs || 0),
+    }),
+    { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  );
+
+  const remainingP = Math.max(10, Math.round((target.protein - currentTotals.protein) * 10) / 10);
+  const remainingF = Math.round((target.fat - currentTotals.fat) * 10) / 10;
+  const remainingC = Math.max(10, Math.round((target.carbs - currentTotals.carbs) * 10) / 10);
+  const isFatOver = remainingF <= 5;
+
+  const req = (userRequest || '').toLowerCase();
+
+  // 1. 麺類・パスタ・うどん・そば
+  if (req.includes('麺') || req.includes('パスタ') || req.includes('うどん') || req.includes('そば') || req.includes('ラーメン')) {
+    const isSoba = req.includes('そば') || req.includes('蕎麦');
+    const noodleName = isSoba ? '十割そば (ざる・ぶっかけ)' : req.includes('うどん') ? '讃岐うどん (温または冷)' : '全粒粉パスタ (和風きのこ)';
+    const noodleGrams = Math.min(250, Math.max(150, Math.round(remainingC * 2.5 / 10) * 10 || 200));
+    const noodleC = Math.round(noodleGrams * 0.28 * 10) / 10;
+    const noodleP = Math.round(noodleGrams * 0.05 * 10) / 10;
+    const noodleCal = Math.round(noodleGrams * 1.35);
+
+    const neededP = Math.max(15, remainingP - noodleP);
+    const meatGrams = Math.round(neededP / 0.23 / 10) * 10 || 150;
+
+    const items: RecommendedItem[] = [
+      {
+        name: noodleName,
+        weightGrams: noodleGrams,
+        calories: noodleCal,
+        protein: noodleP,
+        fat: 1.0,
+        carbs: noodleC,
+      },
+      {
+        name: isFatOver ? 'トッピング: 蒸し鶏ササミ (ほぐし)' : 'トッピング: 温泉卵と豚しゃぶ肉',
+        weightGrams: meatGrams,
+        calories: Math.round(meatGrams * 1.1),
+        protein: Math.round(meatGrams * 0.23 * 10) / 10,
+        fat: isFatOver ? 0.8 : 4.5,
+        carbs: 0.2,
+      },
+      {
+        name: '薬味 (刻みネギ・大根おろし・生姜・刻み海苔)',
+        weightGrams: 50,
+        calories: 18,
+        protein: 0.8,
+        fat: 0.1,
+        carbs: 3.5,
+      },
+    ];
+
+    return createPlan(
+      'plan_custom_' + Date.now(),
+      `🍜 【リクエスト対応】高タンパク・ヘルシー${isSoba ? '蕎麦' : '麺'}セット`,
+      'quick',
+      '麺類リクエスト',
+      `「${userRequest}」のご要望に合わせて、脂質を抑えつつタンパク質と糖質をきっちり補給できる特製麺メニューを構成しました！`,
+      items
+    );
+  }
+
+  // 2. コンビニ指定
+  if (req.includes('コンビニ') || req.includes('セブン') || req.includes('ローソン') || req.includes('ファミマ')) {
+    const items: RecommendedItem[] = [
+      {
+        name: 'サラダチキン (ハーブまたはスモーク 1袋)',
+        weightGrams: 110,
+        calories: 115,
+        protein: 24.1,
+        fat: 1.2,
+        carbs: 0.5,
+      },
+      {
+        name: 'おにぎり (鮭または梅 1個目)',
+        weightGrams: 110,
+        calories: 175,
+        protein: 4.2,
+        fat: 1.1,
+        carbs: 37.0,
+      },
+      {
+        name: '味付き半熟ゆで卵 (1個)',
+        weightGrams: 50,
+        calories: 65,
+        protein: 6.3,
+        fat: 4.3,
+        carbs: 0.4,
+      },
+    ];
+
+    if (remainingC >= 55) {
+      items.push({
+        name: 'おにぎり (昆布または赤飯 2個目)',
+        weightGrams: 110,
+        calories: 170,
+        protein: 3.5,
+        fat: 0.8,
+        carbs: 37.5,
+      });
+    }
+
+    if (remainingP >= 40) {
+      items.push({
+        name: 'たんぱく質が摂れる 豆腐バー (1本)',
+        weightGrams: 68,
+        calories: 104,
+        protein: 10.0,
+        fat: 6.3,
+        carbs: 1.8,
+      });
+    }
+
+    return createPlan(
+      'plan_custom_' + Date.now(),
+      '🏪 【リクエスト対応】コンビニ厳選！即買いPFC最適化セット',
+      'convenience',
+      'コンビニ',
+      `コンビニですぐ買えて調理ゼロ！朝昼の残り枠（P+${remainingP}g）をしっかりカバーする黄金コンビです。`,
+      items
+    );
+  }
+
+  // 3. お酒・おつまみ・居酒屋
+  if (req.includes('酒') || req.includes('つまみ') || req.includes('ビール') || req.includes('ハイボール') || req.includes('居酒屋')) {
+    const items: RecommendedItem[] = [
+      {
+        name: '塩茹で枝豆 (食物繊維＆植物性P)',
+        weightGrams: 100,
+        calories: 134,
+        protein: 11.7,
+        fat: 6.2,
+        carbs: 8.8,
+      },
+      {
+        name: '焼き鳥 ササミ串＆砂肝串 (塩 2本)',
+        weightGrams: 100,
+        calories: 110,
+        protein: 23.5,
+        fat: 1.8,
+        carbs: 0.1,
+      },
+      {
+        name: '冷奴 (生姜醤油・ネギ)',
+        weightGrams: 150,
+        calories: 84,
+        protein: 7.4,
+        fat: 4.5,
+        carbs: 2.7,
+      },
+    ];
+
+    if (remainingC >= 30) {
+      items.push({
+        name: '〆のおにぎり (梅または鮭 1個)',
+        weightGrams: 100,
+        calories: 160,
+        protein: 3.8,
+        fat: 1.0,
+        carbs: 34.0,
+      });
+    }
+
+    return createPlan(
+      'plan_custom_' + Date.now(),
+      '🍺 【リクエスト対応】罪悪感ゼロ！高タンパク居酒屋おつまみセット',
+      'quick',
+      'おつまみ風',
+      `「お酒やおつまみ風にしたい」というご要望に応え、脂質を抑えつつタンパク質をたっぷり確保できるヘルシーおつまみ構成です！`,
+      items
+    );
+  }
+
+  // 4. 魚・刺身・海鮮
+  if (req.includes('魚') || req.includes('刺身') || req.includes('鮭') || req.includes('タラ') || req.includes('海鮮') || req.includes('さかな')) {
+    const riceGrams = Math.round((remainingC / 37.1) * 100 / 10) * 10 || 150;
+    const items: RecommendedItem[] = [
+      {
+        name: isFatOver ? 'マグロ赤身の刺身 (超低脂質・高タンパク)' : '鮭の塩焼き (良質オメガ3脂肪酸)',
+        weightGrams: 130,
+        calories: isFatOver ? 162 : 173,
+        protein: isFatOver ? 34.3 : 29.0,
+        fat: isFatOver ? 1.8 : 5.8,
+        carbs: 0.1,
+      },
+      {
+        name: '白米ごはん',
+        weightGrams: riceGrams,
+        calories: Math.round(riceGrams * 1.56),
+        protein: Math.round(riceGrams * 0.025 * 10) / 10,
+        fat: Math.round(riceGrams * 0.003 * 10) / 10,
+        carbs: Math.round(riceGrams * 0.371 * 10) / 10,
+      },
+      {
+        name: 'アサリまたはシジミの味噌汁',
+        weightGrams: 160,
+        calories: 35,
+        protein: 2.8,
+        fat: 0.8,
+        carbs: 3.8,
+      },
+      {
+        name: 'めかぶ・もずく酢 (ミネラル・整腸)',
+        weightGrams: 60,
+        calories: 12,
+        protein: 0.3,
+        fat: 0.1,
+        carbs: 2.5,
+      },
+    ];
+
+    return createPlan(
+      'plan_custom_' + Date.now(),
+      '🐟 【リクエスト対応】極上の海の恵み！お魚ヘルシー定食',
+      'home',
+      'お魚和食',
+      `お魚リクエストに合わせ、脂質を最小限に抑えつつアミノ酸スコア100の上質タンパク質を補給する定食です。`,
+      items
+    );
+  }
+
+  // 5. さっぱり・和食・あっさり
+  if (req.includes('さっぱり') || req.includes('あっさり') || req.includes('冷') || req.includes('和食')) {
+    const riceGrams = Math.round((remainingC / 37.1) * 100 / 10) * 10 || 140;
+    const items: RecommendedItem[] = [
+      {
+        name: '蒸し鶏むね肉の梅しそポン酢和え',
+        weightGrams: 180,
+        calories: 210,
+        protein: 41.9,
+        fat: 3.4,
+        carbs: 2.8,
+      },
+      {
+        name: '白米ごはん (軽め)',
+        weightGrams: riceGrams,
+        calories: Math.round(riceGrams * 1.56),
+        protein: Math.round(riceGrams * 0.025 * 10) / 10,
+        fat: Math.round(riceGrams * 0.003 * 10) / 10,
+        carbs: Math.round(riceGrams * 0.371 * 10) / 10,
+      },
+      {
+        name: '冷やしトマト＆キュウリの浅漬け',
+        weightGrams: 120,
+        calories: 25,
+        protein: 1.0,
+        fat: 0.1,
+        carbs: 4.8,
+      },
+      {
+        name: 'わかめとお麩のお吸い物',
+        weightGrams: 150,
+        calories: 18,
+        protein: 1.2,
+        fat: 0.2,
+        carbs: 2.8,
+      },
+    ];
+
+    return createPlan(
+      'plan_custom_' + Date.now(),
+      '🥗 【リクエスト対応】胃もたれゼロ！さっぱり梅しそ蒸し鶏定食',
+      'home',
+      'さっぱり和食',
+      `「さっぱりしたものが食べたい」にぴったり！酸味と香味野菜で食欲をそそり、脂質ほぼゼロで消化に優しい構成です。`,
+      items
+    );
+  }
+
+  // 6. デフォルト（食材指定や簡単自炊・汎用リクエスト）
+  const meatGrams = Math.round((remainingP / 0.23) / 10) * 10 || 180;
+  const riceGrams = Math.round((remainingC / 37.1) * 100 / 10) * 10 || 150;
+  const meatCal = Math.round(meatGrams * 1.16);
+
+  const items: RecommendedItem[] = [
+    {
+      name: isFatOver ? `鶏むね肉 (皮なしソテー・塩コショウ)` : `鶏むね肉または豚ヒレ肉のソテー`,
+      weightGrams: meatGrams,
+      calories: meatCal,
+      protein: Math.round(meatGrams * 0.233 * 10) / 10,
+      fat: isFatOver ? Math.round(meatGrams * 0.019 * 10) / 10 : 4.0,
+      carbs: 0,
+    },
+    {
+      name: `白米ごはん`,
+      weightGrams: riceGrams,
+      calories: Math.round(riceGrams * 1.56),
+      protein: Math.round(riceGrams * 0.025 * 10) / 10,
+      fat: Math.round(riceGrams * 0.003 * 10) / 10,
+      carbs: Math.round(riceGrams * 0.371 * 10) / 10,
+    },
+    {
+      name: `キノコとブロッコリーの温野菜 (ノンオイルポン酢)`,
+      weightGrams: 120,
+      calories: 36,
+      protein: 4.0,
+      fat: 0.5,
+      carbs: 5.5,
+    },
+  ];
+
+  return createPlan(
+    'plan_custom_' + Date.now(),
+    `✨ 【リクエスト対応】${userRequest ? `「${userRequest}」` : '今夜の最適'}カスタムPFCディナー`,
+    'home',
+    'オーダーメイド',
+    `ご要望「${userRequest || 'PFC最適化'}」に合わせて、今夜の残り枠（P+${remainingP}g / F:${remainingF <= 0 ? 'カット' : `+${remainingF}g`} / C+${remainingC}g）をジャストで達成できるよう専用計算しました！`,
+    items
+  );
+}
+
+/**
  * Gemini APIを活用したユーザーリクエスト対応型・夕食提案
  */
 export async function generateAiDinnerRecommendation(
