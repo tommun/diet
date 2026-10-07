@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppSettings } from '../types';
 import { exportAllData, importAllData, appendMeals, USER_SPREADSHEET_URL, getFullSyncData, DEFAULT_SETTINGS } from '../lib/storage';
-import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy, FileSpreadsheet, RefreshCw, Share2, Link2 } from 'lucide-react';
 import { getMealHistoryByDate } from '../lib/storage';
 import { GAS_TEMPLATE_CODE, syncSaveToSheets } from '../lib/sheetsSync';
 
@@ -27,6 +27,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isSavedGas, setIsSavedGas] = useState(false);
   const [isCopiedGas, setIsCopiedGas] = useState(false);
   const [isCopiedObsidian, setIsCopiedObsidian] = useState(false);
+  const [isCopiedShareUrl, setIsCopiedShareUrl] = useState(false);
   const [isTestingSync, setIsTestingSync] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     navigator.clipboard.writeText(GAS_TEMPLATE_CODE).then(() => {
       setIsCopiedGas(true);
       setTimeout(() => setIsCopiedGas(false), 2500);
+    });
+  };
+
+  const handleCopyShareUrl = () => {
+    if (!gasSyncUrl.trim()) {
+      alert('先にGoogle Apps ScriptのウェブアプリURLを入力・保存してください。');
+      return;
+    }
+    const cleanOrigin = window.location.origin;
+    const cleanPath = window.location.pathname;
+    const shareUrl = `${cleanOrigin}${cleanPath}?sync=${encodeURIComponent(gasSyncUrl.trim())}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setIsCopiedShareUrl(true);
+      setTimeout(() => setIsCopiedShareUrl(false), 2500);
     });
   };
 
@@ -292,6 +307,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <span>{isSavedGas ? 'URL保存完了' : '同期URLを保存'}</span>
                 </button>
               </div>
+
+              {/* 他端末・別ブラウザ一発同期用URL共有ボタン */}
+              {gasSyncUrl.trim() && (
+                <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2 mt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
+                      <Share2 size={14} className="text-emerald-600" />
+                      <span>URL共有で他端末も一発同期！</span>
+                    </span>
+                    <span className="text-[10px] bg-emerald-200 text-emerald-800 font-bold px-1.5 py-0.5 rounded-sm">
+                      おすすめ
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    下のボタンでコピーしたURLをスマホのLINEや別ブラウザで開くだけで、<strong>設定入力不要で最初から全データが自動同期</strong>されます！
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCopyShareUrl}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-xs shadow-2xs cursor-pointer"
+                  >
+                    {isCopiedShareUrl ? <Check size={14} /> : <Link2 size={14} />}
+                    <span>{isCopiedShareUrl ? '共有用URLをコピーしました！' : '🔗 他端末・共有用URLをコピー'}</span>
+                  </button>
+                </div>
+              )}
 
               {syncStatusMsg && (
                 <div className={`p-2 rounded-lg text-xs font-semibold ${

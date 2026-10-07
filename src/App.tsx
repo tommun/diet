@@ -74,8 +74,31 @@ export function App() {
           window.history.replaceState({}, document.title, cleanUrl);
         }
       }
+      const syncParam = params.get('sync') || params.get('sync_url');
+      if (syncParam) {
+        let targetGasUrl = '';
+        try {
+          if (syncParam.startsWith('http')) {
+            targetGasUrl = syncParam;
+          } else {
+            targetGasUrl = atob(syncParam);
+          }
+        } catch {
+          targetGasUrl = syncParam;
+        }
+
+        if (targetGasUrl && targetGasUrl.startsWith('https://script.google.com/')) {
+          const currentS = loadSettings();
+          const updatedS = { ...currentS, gasSyncUrl: targetGasUrl.trim() };
+          saveSettings(updatedS);
+          setSettings(updatedS);
+          pullFromSheets(targetGasUrl.trim());
+          const cleanUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
     } catch (e) {
-      console.error('Failed to import meals from URL parameter', e);
+      console.error('Failed to parse URL parameters', e);
     }
     const initialSettings = loadSettings();
     reloadAllData();
