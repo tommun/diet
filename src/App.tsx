@@ -26,7 +26,9 @@ import { SettingsModal } from './components/SettingsModal';
 import { WeightModal } from './components/Weight/WeightModal';
 import { MealHistoryModal } from './components/MealHistoryModal';
 import { DinnerRecommendationCard } from './components/DinnerRecommendationCard';
+import { CharacterCard } from './components/CharacterCoach/CharacterCard';
 import { RecommendedItem } from './lib/mealRecommender';
+import { CoachType } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Plus } from 'lucide-react';
 
@@ -406,6 +408,13 @@ export function App() {
     saveSettings(updated);
   };
 
+  // コーチキャラクター切り替え
+  const handleSelectCoach = (newCoach: CoachType) => {
+    const updated: AppSettings = { ...settings, coachType: newCoach };
+    setSettings(updated);
+    saveSettings(updated);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* ヘッダー */}
@@ -433,6 +442,16 @@ export function App() {
           onOpenWeightModal={() => setIsWeightModalOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           isSheetsConfigured={Boolean(settings.gasSyncUrl && settings.gasSyncUrl.trim())}
+        />
+
+        {/* AIキャラクターコーチのアドバイスカード */}
+        <CharacterCard
+          target={settings.targetPFC}
+          currentItems={currentDayItems}
+          coachType={settings.coachType || 'piyo'}
+          apiKey={settings.geminiApiKey}
+          onSelectCoach={handleSelectCoach}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
 
         {/* 今夜のおすすめ夕食提案カード（朝・昼が記録されている場合に表示） */}

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppSettings } from '../types';
+import { AppSettings, CoachType } from '../types';
 import { exportAllData, importAllData, appendMeals, USER_SPREADSHEET_URL, getFullSyncData, DEFAULT_SETTINGS } from '../lib/storage';
-import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy, FileSpreadsheet, RefreshCw, Share2, Link2 } from 'lucide-react';
+import { X, Key, Download, Upload, Check, ExternalLink, ShieldCheck, FileText, Copy, FileSpreadsheet, RefreshCw, Share2, Link2, Sparkles } from 'lucide-react';
 import { getMealHistoryByDate } from '../lib/storage';
 import { GAS_TEMPLATE_CODE, syncSaveToSheets } from '../lib/sheetsSync';
+import { COACH_PROFILES } from './CharacterCoach/characterData';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -209,6 +210,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+          {/* AIキャラクターコーチ設定 */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5 font-bold text-slate-800 text-sm">
+              <Sparkles size={16} className="text-amber-500" />
+              <span>AIキャラクターコーチの選択</span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              PFCバランスのアドバイスや応援をしてくれるキャラクターを設定できます。
+            </p>
+
+            <div className="grid grid-cols-3 gap-2.5 pt-1">
+              {(['piyo', 'muscle', 'elena'] as CoachType[]).map((t) => {
+                const c = COACH_PROFILES[t];
+                const isSelected = (safeSettings.coachType || 'piyo') === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => onSaveSettings({ ...safeSettings, coachType: t })}
+                    className={`p-3 rounded-2xl border text-left flex flex-col items-center sm:items-start gap-1.5 transition-all ${
+                      isSelected
+                        ? 'border-orange-500 bg-orange-50/60 shadow-xs ring-2 ring-orange-400/20'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-2xl">{c.avatarIcon}</span>
+                      {isSelected && (
+                        <span className="bg-orange-500 text-white rounded-full p-0.5">
+                          <Check size={10} className="stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-black text-xs text-slate-800 mt-1">{c.name}</div>
+                    <div className="text-[10px] text-slate-500 font-bold hidden sm:block line-clamp-1">{c.role}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <hr className="border-slate-100" />
+
           {/* Gemini APIキー設定 */}
           <div className="space-y-3">
             <div className="flex items-center gap-1.5 font-bold text-slate-800 text-sm">

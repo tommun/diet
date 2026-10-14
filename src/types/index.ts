@@ -99,11 +99,14 @@ export interface StaplePreset {
   note?: string;
 }
 
+export type CoachType = 'piyo' | 'muscle' | 'elena';
+
 export interface AppSettings {
   geminiApiKey?: string;
   spreadsheetUrl?: string;
   gasSyncUrl?: string;
   lastSyncedAt?: string;
+  coachType?: CoachType;
   profile?: UserProfile;
   targetPFC: TargetPFC;
   staplePresets: StaplePreset[];

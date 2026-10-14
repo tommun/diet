@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   spreadsheetUrl: USER_SPREADSHEET_URL,
   gasSyncUrl: USER_GAS_SYNC_URL,
+  coachType: 'piyo',
   targetPFC: DEFAULT_TARGET_PFC,
   staplePresets: DEFAULT_STAPLE_PRESETS,
   customPresets: []
@@ -40,6 +41,7 @@ export function loadSettings(): AppSettings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      coachType: parsed.coachType || 'piyo',
       spreadsheetUrl: parsed.spreadsheetUrl || USER_SPREADSHEET_URL,
       gasSyncUrl: parsed.gasSyncUrl || USER_GAS_SYNC_URL,
       profile: { ...DEFAULT_SETTINGS.profile, ...(parsed.profile || {}) },
