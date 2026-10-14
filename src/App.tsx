@@ -27,6 +27,8 @@ import { WeightModal } from './components/Weight/WeightModal';
 import { MealHistoryModal } from './components/MealHistoryModal';
 import { DinnerRecommendationCard } from './components/DinnerRecommendationCard';
 import { CharacterCard } from './components/CharacterCoach/CharacterCard';
+import { AiChatInputCard } from './components/AiChatLogger/AiChatInputCard';
+import { ParsedMealGroup } from './lib/aiMealChatParser';
 import { RecommendedItem } from './lib/mealRecommender';
 import { CoachType } from './types';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -415,6 +417,45 @@ export function App() {
     saveSettings(updated);
   };
 
+  // チャット入力からの複数食事一括追加
+  const handleBatchAddMeals = (groups: ParsedMealGroup[]) => {
+    setMeals((prev) => {
+      let updated = [...prev];
+
+      for (const group of groups) {
+        const foodItems: FoodItem[] = group.items.map((i) => ({
+          ...i,
+          id: 'food_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          createdAt: new Date().toISOString(),
+        }));
+
+        const existingMealIdx = updated.findIndex(
+          (m) => m.date === group.date && m.mealType === group.mealType
+        );
+
+        if (existingMealIdx >= 0) {
+          const existing = updated[existingMealIdx];
+          updated[existingMealIdx] = {
+            ...existing,
+            items: [...existing.items, ...foodItems],
+          };
+        } else {
+          const newMeal: MealRecord = {
+            id: 'meal_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+            date: group.date,
+            mealType: group.mealType,
+            items: foodItems,
+          };
+          updated.push(newMeal);
+        }
+      }
+
+      saveMeals(updated);
+      setTimeout(() => pushToSheets(), 300);
+      return updated;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* ヘッダー */}
@@ -452,6 +493,14 @@ export function App() {
           apiKey={settings.geminiApiKey}
           onSelectCoach={handleSelectCoach}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
+        />
+
+        {/* 💬 チャットで食べたものを送るだけ自動記録カード */}
+        <AiChatInputCard
+          currentDate={currentDate}
+          apiKey={settings.geminiApiKey}
+          coachType={settings.coachType || 'piyo'}
+          onBatchAddMeals={handleBatchAddMeals}
         />
 
         {/* 今夜のおすすめ夕食提案カード（朝・昼が記録されている場合に表示） */}
