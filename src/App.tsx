@@ -501,6 +501,7 @@ export function App() {
           apiKey={settings.geminiApiKey}
           coachType={settings.coachType || 'piyo'}
           onBatchAddMeals={handleBatchAddMeals}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
 
         {/* 今夜のおすすめ夕食提案カード（朝・昼が記録されている場合に表示） */}

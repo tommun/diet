@@ -277,28 +277,46 @@ ${userQuestion && userQuestion.trim() ? userQuestion.trim() : '今日のPFCバ�
 3. ユーザーへのモチベーションが高まる温かい励ましの言葉
 `;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey.trim()}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-        },
-      }),
-    }
-  );
+  const candidateModels = [
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-3.8-flash',
+  ];
 
-  if (!res.ok) {
-    throw new Error(`AI通信エラー (HTTP ${res.status})`);
+  let reply = '';
+  let lastStatus = 0;
+
+  for (const model of candidateModels) {
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+            },
+          }),
+        }
+      );
+
+      if (res.ok) {
+        const json = await res.json();
+        reply = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (reply) break;
+      } else {
+        lastStatus = res.status;
+      }
+    } catch {
+      // try next model
+    }
   }
 
-  const json = await res.json();
-  const reply = json.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!reply) {
-    throw new Error('AIからの返答が得られませんでした。');
+    throw new Error(`AI通信エラー (HTTP ${lastStatus || 'error'})`);
   }
 
   return reply.trim();

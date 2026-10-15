@@ -39,8 +39,6 @@ export async function extractNutritionFromImage(
 {"name": "特製カルボナーラ", "calories": 480, "protein": 18.5, "fat": 21.0, "carbs": 54.2, "confidenceNote": "1包装あたり"}
 `;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-
   const payload = {
     contents: [
       {
@@ -60,25 +58,7 @@ export async function extractNutritionFromImage(
     }
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = (errorData as any)?.error?.message || `APIリクエストに失敗しました (${response.status})`;
-    throw new Error(message);
-  }
-
-  const result = await response.json();
-  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error('Gemini APIから結果が得られませんでした。');
-  }
+  const textOutput = await callGeminiApi(apiKey, payload);
 
   try {
     const parsed = JSON.parse(textOutput.trim());
@@ -132,28 +112,12 @@ export async function decomposeDishRecipe(
 }
 `;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { responseMimeType: "application/json" }
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    throw new Error(`AIレシピ分解のリクエストに失敗しました (${response.status})`);
-  }
-
-  const result = await response.json();
-  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error('AIからレシピデータが得られませんでした。');
-  }
+  const textOutput = await callGeminiApi(apiKey, payload);
 
   const parsed = JSON.parse(textOutput.trim());
   return {
@@ -217,28 +181,12 @@ export async function searchChainMenuItem(
 }
 `;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
-
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { responseMimeType: "application/json" }
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    throw new Error(`チェーン店メニュー検索のリクエストに失敗しました (${response.status})`);
-  }
-
-  const result = await response.json();
-  const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error('AIからチェーン店メニューデータが得られませんでした。');
-  }
+  const textOutput = await callGeminiApi(apiKey, payload);
 
   const parsed = JSON.parse(textOutput.trim());
   return {
@@ -252,4 +200,45 @@ export async function searchChainMenuItem(
     carbs: Math.round((Number(parsed.carbs) || 0) * 10) / 10,
     note: parsed.note || 'AI特定・公式基準値'
   };
+}
+
+/**
+ * 複数モデルのフォールバックチェーンで堅牢にGemini APIを呼び出す共通関数
+ */
+async function callGeminiApi(apiKey: string, payload: any): Promise<string> {
+  const candidateModels = [
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-3.8-flash',
+    'gemini-flash-latest'
+  ];
+
+  let lastStatus = 0;
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const textOutput = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (textOutput) {
+          return textOutput;
+        }
+      } else {
+        lastStatus = response.status;
+      }
+    } catch {
+      // try next
+    }
+  }
+
+  throw new Error(`Gemini APIリクエストに失敗しました (HTTP ${lastStatus || 'network error'})`);
 }

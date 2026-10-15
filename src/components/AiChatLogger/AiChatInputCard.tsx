@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { CoachType, MealType } from '../../types';
 import { COACH_PROFILES } from '../CharacterCoach/characterData';
 import { parseMealChatText, ParsedMealGroup } from '../../lib/aiMealChatParser';
-import { Send, Sparkles, Check, RefreshCw, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Sparkles, Check, RefreshCw, X, ChevronDown, ChevronUp, Trash2, HelpCircle } from 'lucide-react';
 
 interface AiChatInputCardProps {
   currentDate: string;
   apiKey?: string;
   coachType?: CoachType;
   onBatchAddMeals: (groups: ParsedMealGroup[]) => void;
+  onOpenSettings?: () => void;
 }
 
 export function AiChatInputCard({
@@ -16,12 +17,14 @@ export function AiChatInputCard({
   apiKey,
   coachType = 'piyo',
   onBatchAddMeals,
+  onOpenSettings,
 }: AiChatInputCardProps) {
   const [inputText, setInputText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedGroups, setParsedGroups] = useState<ParsedMealGroup[] | null>(null);
   const [isAddedSuccess, setIsAddedSuccess] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showTips, setShowTips] = useState(false);
 
   const coach = COACH_PROFILES[coachType] || COACH_PROFILES.piyo;
 
@@ -49,6 +52,40 @@ export function AiChatInputCard({
     }
   };
 
+  // プレビュー内の特定品目を削除
+  const handleDeleteItem = (groupIndex: number, itemIndex: number) => {
+    if (!parsedGroups) return;
+    const updated = [...parsedGroups];
+    const group = { ...updated[groupIndex] };
+    const newItems = group.items.filter((_, idx) => idx !== itemIndex);
+
+    if (newItems.length === 0) {
+      // グループごと削除
+      const newGroups = updated.filter((_, idx) => idx !== groupIndex);
+      setParsedGroups(newGroups.length > 0 ? newGroups : null);
+      return;
+    }
+
+    const totals = newItems.reduce(
+      (acc, item) => ({
+        calories: acc.calories + item.calories,
+        protein: acc.protein + item.protein,
+        fat: acc.fat + item.fat,
+        carbs: acc.carbs + item.carbs,
+      }),
+      { calories: 0, protein: 0, fat: 0, carbs: 0 }
+    );
+
+    group.items = newItems;
+    group.totalCalories = Math.round(totals.calories);
+    group.totalProtein = Math.round(totals.protein * 10) / 10;
+    group.totalFat = Math.round(totals.fat * 10) / 10;
+    group.totalCarbs = Math.round(totals.carbs * 10) / 10;
+
+    updated[groupIndex] = group;
+    setParsedGroups(updated);
+  };
+
   // 一括登録の実行
   const handleApply = () => {
     if (!parsedGroups || parsedGroups.length === 0) return;
@@ -74,6 +111,8 @@ export function AiChatInputCard({
     { calories: 0, protein: 0, fat: 0, carbs: 0, itemsCount: 0 }
   );
 
+  const isOffline = parsedGroups?.some((g) => g.source === 'offline') || !apiKey;
+
   return (
     <section className="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4 md:p-5 mb-6 transition-all hover:shadow-md">
       {/* ヘッダー */}
@@ -83,25 +122,67 @@ export function AiChatInputCard({
             <span className="text-base">💬</span>
           </div>
           <div>
-            <h3 className="font-black text-sm text-slate-800 flex items-center gap-1.5">
+            <h3 className="font-black text-sm text-slate-800 flex items-center gap-1.5 flex-wrap">
               <span>チャットで食べたものを送るだけ自動記録</span>
               <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">
                 AI自動分類
               </span>
+              {apiKey ? (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                  ✨ Gemini AI対応
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  📋 基本辞書モード
+                </span>
+              )}
             </h3>
             <p className="text-[11px] text-slate-500 font-bold">
-              「朝 食パン 目玉焼き / 昼 ハンバーグとごはん」のように自由に入力・コピペOK！
+              「晩御飯 サバの水煮缶、大根おろし、ごはん200g」のように自由に入力・コピペOK！
             </p>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-        >
-          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowTips(!showTips)}
+            title="書き方のコツを見る"
+            className="text-slate-400 hover:text-orange-500 p-1.5 rounded-lg hover:bg-orange-50 transition-colors"
+          >
+            <HelpCircle size={18} />
+          </button>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+        </div>
       </div>
+
+      {/* 書き方のコツのアコーディオン */}
+      {showTips && (
+        <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 mb-3 text-xs text-amber-900 animate-in fade-in duration-150">
+          <div className="font-black mb-1 flex items-center gap-1.5 text-amber-800">
+            <span>💡 おすすめの書き方・入力のコツ</span>
+          </div>
+          <ul className="list-disc list-inside space-y-1 text-[11px] font-medium text-amber-800/90">
+            <li>
+              <strong>食事区分</strong>: 行頭に「朝」「昼」「晩御飯」「夕食」「間食」などを書きます。
+            </li>
+            <li>
+              <strong>品目の区切り</strong>: 読点「、」や改行で品目を並べると全品目を確実に認識します。
+            </li>
+            <li>
+              <strong>分量</strong>: 「200g」「半丁」「1缶」「2個」「小盛」など具体的に書くと計算精度が上がります。
+            </li>
+            <li className="text-orange-800 font-bold">
+              記入例: <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-900">晩御飯 サバの水煮缶、大根おろし、ごはん200g、ノンオイルツナ缶、納豆、豆腐半丁</code>
+            </li>
+          </ul>
+        </div>
+      )}
 
       {/* チャット入力エリア */}
       <div className="relative mt-2">
@@ -109,19 +190,18 @@ export function AiChatInputCard({
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onFocus={() => setIsExpanded(true)}
-          placeholder={`食べたものをそのまま入力してね！\n例:\n今日の朝食 食パン4枚切り1枚、目玉焼き2個、ミネストローネ\n今日の昼食 つるとんたん日替わり定食 (うどん200g、唐揚げ2個、ごはん小盛)`}
+          placeholder={`食べたものをそのまま入力してね！\n例:\n晩御飯 サバの水煮缶、大根おろし、ごはん200g、ノンオイルツナ缶、納豆、豆腐半丁\n朝食 食パン4枚切り1枚、目玉焼き2個、ミネストローネ`}
           rows={isExpanded || inputText ? 3 : 2}
           className="w-full bg-slate-50 border border-slate-300/80 rounded-xl p-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all font-medium resize-none"
         />
 
-        {/* 送信ボタン */}
+        {/* 送信ボタン ＆ クイック入力チップ */}
         <div className="flex items-center justify-between mt-2 pt-1">
-          {/* クイック入力例文チップ */}
           <div className="hidden sm:flex flex-wrap gap-1.5 text-[11px]">
             {[
+              '晩御飯: サバの水煮缶、大根おろし、ごはん200g、納豆',
               '朝: 食パン1枚、目玉焼き2個',
               '昼: 鶏もも肉200g炒め、ごはん180g',
-              '昨日の夜食: 冷奴150g'
             ].map((chip, idx) => (
               <button
                 key={idx}
@@ -164,8 +244,17 @@ export function AiChatInputCard({
             <div className="flex items-center gap-2">
               <span className="text-xl">{coach.avatarIcon}</span>
               <div>
-                <h4 className="font-black text-xs sm:text-sm text-slate-800">
-                  {coach.name} が食事を分類・PFC計算したよ！
+                <h4 className="font-black text-xs sm:text-sm text-slate-800 flex items-center gap-2">
+                  <span>{coach.name} が食事を分類・PFC計算したよ！</span>
+                  {parsedGroups[0]?.source === 'ai' ? (
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                      ✨ Gemini AI高精度
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                      📋 基本辞書モード
+                    </span>
+                  )}
                 </h4>
                 <p className="text-[11px] text-slate-500 font-bold">
                   内容を確認して「一括登録」を押すと、アプリとスプレッドシートに即時反映されます。
@@ -180,6 +269,25 @@ export function AiChatInputCard({
               <X size={16} />
             </button>
           </div>
+
+          {/* オフライン時の案内（Gemini APIキー登録の誘導） */}
+          {isOffline && (
+            <div className="bg-blue-50/80 border border-blue-200/80 rounded-xl p-2.5 mb-3 text-xs text-blue-900 flex items-center justify-between gap-2">
+              <div className="text-[11px] font-medium leading-relaxed">
+                <span>💡 <strong>基本辞書モードで解析しました。</strong></span>
+                <span className="hidden sm:inline"> 外食メニューやコンビニ商品、マイナーな食材も完全自動で高精度に計算したい場合は、右上の⚙️設定から無料のGemini APIキーをご登録ください。</span>
+              </div>
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="shrink-0 text-[11px] font-black text-blue-700 bg-white border border-blue-300 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors shadow-2xs"
+                >
+                  ⚙️ API設定
+                </button>
+              )}
+            </div>
+          )}
 
           {/* 食事区分ごとのグループプレビュー */}
           <div className="space-y-3 mb-4">
@@ -212,16 +320,39 @@ export function AiChatInputCard({
                     </div>
                   </div>
 
-                  {/* 食品品目リスト */}
+                  {/* 食品品目リスト（削除ボタン付き） */}
                   <div className="space-y-1.5">
                     {group.items.map((item, iIdx) => (
-                      <div key={iIdx} className="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-slate-200/50">
-                        <span className="font-bold text-slate-800">{item.name}</span>
-                        <div className="text-right shrink-0 ml-2">
-                          <span className="font-black text-slate-700">{item.calories} kcal</span>
-                          <span className="text-[10px] text-slate-400 font-medium ml-1.5">
-                            P:{item.protein} F:{item.fat} C:{item.carbs}
-                          </span>
+                      <div
+                        key={item.id || iIdx}
+                        className="flex items-center justify-between text-xs bg-white p-2.5 rounded-lg border border-slate-200/60 hover:border-slate-300 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="font-bold text-slate-800 truncate">{item.name}</span>
+                          {item.weightGrams && (
+                            <span className="text-[10px] text-slate-400 font-bold shrink-0">
+                              {item.weightGrams}g
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0 ml-2">
+                          <div className="text-right">
+                            <span className="font-black text-slate-700">{item.calories} kcal</span>
+                            <span className="text-[10px] text-slate-400 font-medium ml-1.5 hidden sm:inline">
+                              P:{item.protein} F:{item.fat} C:{item.carbs}
+                            </span>
+                          </div>
+
+                          {/* 削除ボタン */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem(gIdx, iIdx)}
+                            title="この品目を削除"
+                            className="text-slate-300 hover:text-red-500 p-1 rounded-md transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </div>
                     ))}
