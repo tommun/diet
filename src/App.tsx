@@ -27,7 +27,6 @@ import { WeightModal } from './components/Weight/WeightModal';
 import { MealHistoryModal } from './components/MealHistoryModal';
 import { DinnerRecommendationCard } from './components/DinnerRecommendationCard';
 import { CharacterCard } from './components/CharacterCoach/CharacterCard';
-import { AiChatInputCard } from './components/AiChatLogger/AiChatInputCard';
 import { ParsedMealGroup } from './lib/aiMealChatParser';
 import { RecommendedItem } from './lib/mealRecommender';
 import { CoachType } from './types';
@@ -495,15 +494,6 @@ export function App() {
           onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
 
-        {/* 💬 チャットで食べたものを送るだけ自動記録カード */}
-        <AiChatInputCard
-          currentDate={currentDate}
-          apiKey={settings.geminiApiKey}
-          coachType={settings.coachType || 'piyo'}
-          onBatchAddMeals={handleBatchAddMeals}
-          onOpenSettings={() => setIsSettingsModalOpen(true)}
-        />
-
         {/* 今夜のおすすめ夕食提案カード（朝・昼が記録されている場合に表示） */}
         <DinnerRecommendationCard
           target={settings.targetPFC}
@@ -542,10 +532,13 @@ export function App() {
         isOpen={isLogModalOpen}
         onClose={() => setIsLogModalOpen(false)}
         defaultMealType={activeMealType}
+        currentDate={currentDate}
         apiKey={settings.geminiApiKey}
+        coachType={settings.coachType || 'piyo'}
         staplePresets={settings.staplePresets}
         favorites={favorites}
         onAddFood={handleAddFood}
+        onBatchAddMeals={handleBatchAddMeals}
         onSaveFavorite={handleSaveFavorite}
         onDeleteFavorite={handleDeleteFavorite}
         onOpenStaplesConfig={() => setIsStaplesModalOpen(true)}

@@ -35,7 +35,8 @@ const MEAL_TYPE_LABELS: Record<MealType, string> = {
 export async function parseMealChatText(
   text: string,
   currentDateStr: string,
-  apiKey?: string
+  apiKey?: string,
+  defaultMealType: MealType = 'dinner'
 ): Promise<ParsedMealGroup[]> {
   const trimmed = (text || '').trim();
   if (!trimmed) return [];
@@ -43,7 +44,7 @@ export async function parseMealChatText(
   // APIキーがある場合はGeminiで高精度パース
   if (apiKey && apiKey.trim()) {
     try {
-      const result = await parseWithGemini(trimmed, currentDateStr, apiKey.trim());
+      const result = await parseWithGemini(trimmed, currentDateStr, apiKey.trim(), defaultMealType);
       if (result && result.length > 0) {
         return result;
       }
@@ -53,7 +54,7 @@ export async function parseMealChatText(
   }
 
   // オフライン・スマートパーサー（フォールバック）
-  return parseWithLocalRules(trimmed, currentDateStr);
+  return parseWithLocalRules(trimmed, currentDateStr, defaultMealType);
 }
 
 /**
@@ -63,7 +64,8 @@ export async function parseMealChatText(
 async function parseWithGemini(
   text: string,
   baseDateStr: string,
-  apiKey: string
+  apiKey: string,
+  defaultMealType: MealType = 'dinner'
 ): Promise<ParsedMealGroup[]> {
   const prompt = `
 あなたはプロの管理栄養士・PFC解析AIです。
@@ -78,7 +80,7 @@ ${text}
 
 【解析ルール】:
 1. 「今日」「昨日」「一昨日」「10月8日」などの日付表現を解釈し、"YYYY-MM-DD"形式の日付を割り当ててください。省略されている場合は基準日付(${baseDateStr})としてください。
-2. 「朝」「昼」「夜」「晩御飯」「間食」「夜食」などのキーワードから mealType を ("breakfast" | "lunch" | "dinner" | "snack") に分類してください。指定がない場合は文脈や時間帯から推測してください。
+2. 「朝」「昼」「夜」「晩御飯」「間食」「夜食」などのキーワードから mealType を ("breakfast" | "lunch" | "dinner" | "snack") に分類してください。指定がない場合は「${defaultMealType}」に分類してください。
 3. ユーザーが入力した品目（サバの水煮缶、大根おろし、ごはん200g、ノンオイルツナ缶、納豆、豆腐半丁等）は、1つも漏らさず全て個別のアイテムとして分解・抽出してください。
 4. 日本食品標準成分表や市販品・外食の公式データを基準に、現実的で高精度な栄養価 (calories, protein, fat, carbs) を算出してください。
 
@@ -150,7 +152,7 @@ ${text}
   return parsed.map((group: any) => {
     const mealType: MealType = ['breakfast', 'lunch', 'dinner', 'snack'].includes(group.mealType)
       ? group.mealType
-      : 'dinner';
+      : defaultMealType;
     const items: ParsedFoodItem[] = Array.isArray(group.items)
       ? group.items.map((i: any, idx: number) => ({
           id: 'item_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substring(2, 6),
@@ -191,7 +193,11 @@ ${text}
  * オフライン対応スマートパーサー（強化ルールベース＋拡張食材辞書）
  * 入力された品目を1つも漏らさず全てトークン化して抽出します
  */
-function parseWithLocalRules(text: string, baseDateStr: string): ParsedMealGroup[] {
+function parseWithLocalRules(
+  text: string,
+  baseDateStr: string,
+  defaultMealType: MealType = 'dinner'
+): ParsedMealGroup[] {
   // 日付の判定
   let targetDate = baseDateStr;
   if (text.includes('昨日')) {
@@ -207,7 +213,7 @@ function parseWithLocalRules(text: string, baseDateStr: string): ParsedMealGroup
   // 1. 食事区分（朝・昼・夕・間食）を行単位またはキーワードで分割
   const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const sections: { mealType: MealType; content: string[] }[] = [];
-  let currentMealType: MealType = 'dinner'; // デフォルト
+  let currentMealType: MealType = defaultMealType; // デフォルト
 
   for (const line of rawLines) {
     let lineMealType: MealType | null = null;
@@ -247,7 +253,7 @@ function parseWithLocalRules(text: string, baseDateStr: string): ParsedMealGroup
   }
 
   if (sections.length === 0) {
-    sections.push({ mealType: 'dinner', content: rawLines });
+    sections.push({ mealType: defaultMealType, content: rawLines });
   }
 
   const results: ParsedMealGroup[] = [];

@@ -10,6 +10,9 @@ interface AiChatInputCardProps {
   coachType?: CoachType;
   onBatchAddMeals: (groups: ParsedMealGroup[]) => void;
   onOpenSettings?: () => void;
+  onClose?: () => void;
+  isModal?: boolean;
+  defaultMealType?: MealType;
 }
 
 export function AiChatInputCard({
@@ -18,12 +21,15 @@ export function AiChatInputCard({
   coachType = 'piyo',
   onBatchAddMeals,
   onOpenSettings,
+  onClose,
+  isModal = false,
+  defaultMealType = 'dinner',
 }: AiChatInputCardProps) {
   const [inputText, setInputText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [parsedGroups, setParsedGroups] = useState<ParsedMealGroup[] | null>(null);
   const [isAddedSuccess, setIsAddedSuccess] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(isModal ? true : false);
   const [showTips, setShowTips] = useState(false);
 
   const coach = COACH_PROFILES[coachType] || COACH_PROFILES.piyo;
@@ -37,7 +43,7 @@ export function AiChatInputCard({
     setIsAddedSuccess(false);
 
     try {
-      const results = await parseMealChatText(inputText, currentDate, apiKey);
+      const results = await parseMealChatText(inputText, currentDate, apiKey, defaultMealType);
       if (results && results.length > 0) {
         setParsedGroups(results);
         setIsExpanded(true);
@@ -96,7 +102,8 @@ export function AiChatInputCard({
       setParsedGroups(null);
       setInputText('');
       setIsAddedSuccess(false);
-    }, 2000);
+      onClose?.();
+    }, 1500);
   };
 
   // 全グループの総合計
@@ -114,7 +121,11 @@ export function AiChatInputCard({
   const isOffline = parsedGroups?.some((g) => g.source === 'offline') || !apiKey;
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4 md:p-5 mb-6 transition-all hover:shadow-md">
+    <section className={`bg-white rounded-2xl transition-all ${
+      isModal
+        ? 'border-0 shadow-none p-0 mb-0'
+        : 'shadow-sm border border-slate-200/90 p-4 md:p-5 mb-6 hover:shadow-md'
+    }`}>
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
@@ -152,12 +163,14 @@ export function AiChatInputCard({
           >
             <HelpCircle size={18} />
           </button>
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
+          {!isModal && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+          )}
         </div>
       </div>
 
